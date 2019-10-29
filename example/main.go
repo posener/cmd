@@ -27,11 +27,11 @@ var (
 )
 
 func main() {
-	// In the main function, call the `Parse` or `ParseArgs`, just as in the stasndard library
+	// In the main function, call the `Parse` or `ParseArgs`, just as in the standard library
 	// the `flag.Parse` function should be called.
 	root.ParseArgs()
 
-	// The flag variables behaves the same as in the stasndard library.
+	// The flag variables behaves the same as in the standard library.
 	if *path == "" {
 		log.Fatal("Path must be provided")
 	}
@@ -46,6 +46,6 @@ func main() {
 		log.Printf("Reading path %s", *path)
 		return
 	default:
-		log.Fatal("no command was specidied.")
+		log.Fatal("no command was specified.")
 	}
 }
