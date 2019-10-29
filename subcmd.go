@@ -13,7 +13,7 @@
 //
 // Example
 //
-// See the ./example.
+// See ./example/main.go.
 //
 // Limitations
 //
