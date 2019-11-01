@@ -32,7 +32,7 @@ func testRoot() *testCommand {
 
 	root.Cmd = Root(
 		OptName("cmd"),
-		SetErrorHandling(flag.ContinueOnError),
+		OptErrorHandling(flag.ContinueOnError),
 		OptOutput(&root.out),
 		OptSynopsis("cmd synopsys"),
 		OptDetails("testing command line example"))
@@ -162,41 +162,65 @@ func TestHelp(t *testing.T) {
 		{
 			args: []string{"cmd", "-h"},
 			want: `Usage: cmd [flags]
+
 cmd synopsys
+
+  testing command line example
+
 Subcommands:
+
   sub1	a sub command with flags and sub commands
   sub2	a sub command without flags and sub commands
+
 Flags:
+
   -flag
     	example of bool flag
+
 `,
 		},
 		{
 			args: []string{"cmd", "sub1", "-h"},
-			want: `Usage: sub1 [flags] [args]
+			want: `Usage: cmd sub1 [flags] [args]
+
 a sub command with flags and sub commands
+
+  sub command details
+
 Subcommands:
+
   sub1	sub command of sub command
+
 Flags:
+
   -flag string
     	example of string flag
+
 `,
 		},
 		{
 			args: []string{"cmd", "sub2", "-h"},
-			want: `Usage: sub2 [arg]
+			want: `Usage: cmd sub2 [arg]
+
 a sub command without flags and sub commands
+
 Positional arguments:
-arg is a single argument
+
+  arg is a single argument
+
 `,
 		},
 		{
 			args: []string{"cmd", "sub1", "sub1", "-h"},
-			want: `Usage: sub1 [flags]
+			want: `Usage: cmd sub1 sub1 [flags]
+
 sub command of sub command
+
 Flags:
+
   -flag string
     	example of string flag
+
 `,
 		},
 	}
