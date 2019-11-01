@@ -2,6 +2,7 @@ package subcmd
 
 import (
 	"bytes"
+	"errors"
 	"flag"
 	"strings"
 	"testing"
@@ -11,13 +12,19 @@ import (
 
 type testCommand struct {
 	*Cmd
-	sub1      *Cmd
+	rootFlag *bool
+
+	sub1     *Cmd
+	sub1Flag *string
+	sub1Args *[]string
+
 	sub11     *Cmd
-	sub2      *Cmd
-	rootFlag  *bool
-	sub1Flag  *string
 	sub11Flag *string
-	out       bytes.Buffer
+
+	sub2     *Cmd
+	sub2Args *[]string
+
+	out bytes.Buffer
 }
 
 func testRoot() *testCommand {
@@ -25,7 +32,7 @@ func testRoot() *testCommand {
 
 	root.Cmd = Root(
 		OptName("cmd"),
-		OptDescription("description"),
+		OptSynopsis("description"),
 		OptErrorHandling(flag.ContinueOnError),
 		OptOutput(&root.out))
 
@@ -33,11 +40,13 @@ func testRoot() *testCommand {
 
 	root.sub1 = root.SubCommand("sub1", "a sub command with flags and sub commands")
 	root.sub1Flag = root.sub1.String("flag", "", "example of string flag")
+	root.sub1Args = root.sub1.Args(nil)
 
 	root.sub11 = root.sub1.SubCommand("sub1", "sub command of sub command")
 	root.sub11Flag = root.sub11.String("flag", "", "example of string flag")
 
 	root.sub2 = root.SubCommand("sub2", "a sub command without flags and sub commands")
+	root.sub2Args = root.sub2.Args(&ArgsOpts{N: 1, Usage: "[arg]", Details: "arg is a single argument"})
 
 	return &root
 }
@@ -53,8 +62,9 @@ func TestSubCmd(t *testing.T) {
 		sub2Parsed  bool
 		rootFlag    bool
 		sub1Flag    string
+		sub1Args    []string
 		sub11Flag   string
-		wantArgs    []string
+		sub2Args    []string
 	}{
 		{
 			args: []string{"cmd"},
@@ -81,10 +91,6 @@ func TestSubCmd(t *testing.T) {
 			sub11Flag:   "value",
 		},
 		{
-			args:       []string{"cmd", "sub2"},
-			sub2Parsed: true,
-		},
-		{
 			args:    []string{"cmd", "-no-such-flag"},
 			wantErr: true,
 		},
@@ -97,13 +103,32 @@ func TestSubCmd(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			args:     []string{"cmd", "arg1"},
-			wantArgs: []string{"arg1"},
+			args:    []string{"cmd", "arg1"},
+			wantErr: true,
 		},
 		{
 			args:       []string{"cmd", "sub1", "arg1"},
 			sub1Parsed: true,
-			wantArgs:   []string{"arg1"},
+			sub1Args:   []string{"arg1"},
+		},
+		{
+			args:       []string{"cmd", "sub1", "arg1", "arg2"},
+			sub1Parsed: true,
+			sub1Args:   []string{"arg1", "arg2"},
+		},
+		{
+			args:       []string{"cmd", "sub1", "-flag", "value", "arg1"},
+			sub1Parsed: true,
+			sub1Flag:   "value",
+			sub1Args:   []string{"arg1"},
+		},
+		{
+			args:       []string{"cmd", "sub2", "arg1"},
+			sub2Parsed: true,
+		},
+		{
+			args:    []string{"cmd", "sub2", "arg1", "arg2"},
+			wantErr: true,
 		},
 	}
 
@@ -135,7 +160,8 @@ func TestHelp(t *testing.T) {
 	}{
 		{
 			args: []string{"cmd", "-h"},
-			want: `cmd	description
+			want: `Usage: cmd [flags]
+description
 Subcommands:
   sub1	a sub command with flags and sub commands
   sub2	a sub command without flags and sub commands
@@ -146,7 +172,8 @@ Flags:
 		},
 		{
 			args: []string{"cmd", "sub1", "-h"},
-			want: `sub1	a sub command with flags and sub commands
+			want: `Usage: sub1 [flags] [args]
+a sub command with flags and sub commands
 Subcommands:
   sub1	sub command of sub command
 Flags:
@@ -156,12 +183,16 @@ Flags:
 		},
 		{
 			args: []string{"cmd", "sub2", "-h"},
-			want: `sub2	a sub command without flags and sub commands
+			want: `Usage: sub2 [arg]
+a sub command without flags and sub commands
+Positional arguments:
+arg is a single argument
 `,
 		},
 		{
 			args: []string{"cmd", "sub1", "sub1", "-h"},
-			want: `sub1	sub command of sub command
+			want: `Usage: sub1 [flags]
+sub command of sub command
 Flags:
   -flag string
     	example of string flag
@@ -173,8 +204,71 @@ Flags:
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
 			root := testRoot()
 			err := root.Parse(tt.args)
-			assert.Equal(t, err, flag.ErrHelp)
+			assert.True(t, errors.As(err, &flag.ErrHelp))
 			assert.Equal(t, tt.want, root.out.String())
 		})
 	}
+}
+
+func TestCmd_failures(t *testing.T) {
+	t.Parallel()
+
+	t.Run("command can't have two sub commands with the same name", func(t *testing.T) {
+		cmd := Root()
+		cmd.SubCommand("sub", "description")
+
+		assert.Panics(t, func() { cmd.SubCommand("sub", "description") })
+	})
+
+	t.Run("parse must get at least one argument", func(t *testing.T) {
+		cmd := Root()
+
+		assert.Panics(t, func() { cmd.Parse(nil) })
+	})
+
+	t.Run("both command and sub command have positional arguments should panic", func(t *testing.T) {
+		cmd := Root()
+		cmd.Args(nil)
+		subcmd := cmd.SubCommand("sub", "description")
+		subcmd.Args(nil)
+
+		assert.Panics(t, func() { cmd.ParseArgs() })
+	})
+
+	t.Run("both command and sub sub command have positional arguments should panic", func(t *testing.T) {
+		cmd := Root()
+		cmd.Args(nil)
+		sub := cmd.SubCommand("sub", "description")
+		subsub := sub.SubCommand("sub", "description")
+		subsub.Args(nil)
+
+		assert.Panics(t, func() { cmd.ParseArgs() })
+	})
+
+	t.Run("both sub command and sub sub command have positional arguments should panic", func(t *testing.T) {
+		cmd := Root()
+		sub := cmd.SubCommand("sub", "description")
+		sub.Args(nil)
+		subsub := sub.SubCommand("sub", "description")
+		subsub.Args(nil)
+
+		assert.Panics(t, func() { cmd.ParseArgs() })
+	})
+
+	t.Run("two different sub command may have positional arguments", func(t *testing.T) {
+		cmd := Root()
+		sub1 := cmd.SubCommand("sub1", "description")
+		sub1.Args(nil)
+		sub2 := cmd.SubCommand("sub2", "description")
+		sub2.Args(nil)
+
+		assert.NotPanics(t, func() { cmd.Parse([]string{"cmd"}) })
+	})
+
+	t.Run("calling positional more than once is not allowed", func(t *testing.T) {
+		cmd := Root()
+		cmd.Args(nil)
+
+		assert.Panics(t, func() { cmd.Args(nil) })
+	})
 }

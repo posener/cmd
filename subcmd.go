@@ -11,6 +11,12 @@
 //
 // The usage is automatically configured to show both sub commands and flags.
 //
+// Positional arguments
+//
+// The `subcmd` library is opinionated about positional arguments: it enforces their definition
+// and parsing. The user can define for each sub command if and how many positional arguments it
+// accepts. Their usage is similar to the flag values usage.
+//
 // Example
 //
 // See ./example/main.go.
@@ -28,22 +34,46 @@ import (
 	"io"
 	"os"
 	"sort"
+	"strings"
 )
 
 // Cmd is a command that can have set of flags and a sub command.
 type Cmd struct {
-	name        string
-	description string
+	// name of command or sub command.
+	name string
+	// synopsis of the command.
+	synopsis string
+	// argsOpts are the positional arguments options. If nil the command does not accept
+	// positional arguments.
+	argsOpts *ArgsOpts
 
+	// FlagsSet holds the flags of the command.
 	*flag.FlagSet
-	subCmd map[string]*Cmd
+	// args holds the positional arguments of the commands.
+	args *[]string
+	// sub holds the sub commands of the command.
+	sub map[string]*Cmd
+}
+
+// ArgsOpts are options for positional arguments.
+type ArgsOpts struct {
+	// N can be used to enforce a fixed number of positional arguments. Any non-positive number will
+	// be ignored.
+	N int
+	// Usage is a string representing the positional arguments which will be printed in the command
+	// usage. For example, The string "[source] [destination]" can represent usage of positional
+	// arguments for a move command.
+	Usage string
+	// Details can be used to provide farther explaination on the positional arguments in the usage
+	// help.
+	Details string
 }
 
 type config struct {
 	errorHandling flag.ErrorHandling
 	output        io.Writer
 	name          string
-	description   string
+	synopsis      string
 }
 
 // Option can configure command behavior.
@@ -70,10 +100,10 @@ func OptName(name string) Option {
 	}
 }
 
-// OptDescription sets a description to the root command.
-func OptDescription(description string) Option {
+// OptSynopsis sets a description to the root command.
+func OptSynopsis(synopsis string) Option {
 	return func(cfg *config) {
-		cfg.description = description
+		cfg.synopsis = synopsis
 	}
 }
 
@@ -93,19 +123,35 @@ func Root(options ...Option) *Cmd {
 	return newCmd(cfg)
 }
 
+// Args returns the positional arguments for the command and enable defining options. Only a sub
+// command that called this method accepts positional arguments. Calling a sub command with
+// positional arguments where they were not defined result in parsing error. The provided options
+// can be nil for default values.
+func (c *Cmd) Args(opts *ArgsOpts) *[]string {
+	if c.argsOpts != nil {
+		panic("Args() called more than once.")
+	}
+	// Default options.
+	if opts == nil {
+		opts = &ArgsOpts{}
+	}
+	c.argsOpts = opts
+	return c.args
+}
+
 // SubCommand creates a new sub command to the given command.
-func (c *Cmd) SubCommand(name string, description string) *Cmd {
-	if c.subCmd[name] != nil {
+func (c *Cmd) SubCommand(name string, synopsis string) *Cmd {
+	if c.sub[name] != nil {
 		panic(fmt.Sprintf("sub command %q already exists", name))
 	}
 
 	subCmd := newCmd(config{
 		name:          name,
-		description:   description,
+		synopsis:      synopsis,
 		errorHandling: c.ErrorHandling(),
 		output:        c.Output(),
 	})
-	c.subCmd[name] = subCmd
+	c.sub[name] = subCmd
 	return subCmd
 }
 
@@ -116,10 +162,13 @@ func (c *Cmd) ParseArgs() error {
 
 // Parse a set of arguments.
 func (c *Cmd) Parse(args []string) error {
-	return c.handleError(c.parse(args))
+	c.validate()
+	_, err := c.parse(args)
+
+	return c.handleError(err)
 }
 
-func (c *Cmd) parse(args []string) error {
+func (c *Cmd) parse(args []string) ([]string, error) {
 	if len(args) < 1 {
 		panic("must be at least the command in arguments")
 	}
@@ -127,48 +176,105 @@ func (c *Cmd) parse(args []string) error {
 	// Check for command flags, and update the remaining arguments.
 	err := c.FlagSet.Parse(args[1:])
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("%s: bad flags: %w", c.name, err)
 	}
 	args = c.FlagSet.Args()
 
 	// Check if another the first remaining argument matches any sub command.
-	if len(args) == 0 {
-		return nil
+	if len(args) > 0 && c.sub[args[0]] != nil {
+		subcmd := c.sub[args[0]]
+		args, err = subcmd.parse(args)
+		if err != nil {
+			return nil, fmt.Errorf("%s > %v", c.name, err)
+		}
 	}
-	subCmd := c.subCmd[args[0]]
-	if subCmd == nil {
-		return nil
+
+	// Collect positional arguments if required.
+	args, err = c.setArgs(args)
+	if err != nil {
+		return nil, fmt.Errorf("%s: bad positional args: %v", c.name, err)
 	}
-	return subCmd.Parse(args)
+
+	return args, nil
+}
+
+func (c *Cmd) setArgs(args []string) ([]string, error) {
+	opt := c.argsOpts
+	if opt == nil {
+		if len(args) > 0 {
+			return nil, fmt.Errorf("positional args not expected, got %v", args)
+		}
+		return args, nil
+	}
+	if opt.N > 0 && len(args) != opt.N {
+		return nil, fmt.Errorf("required %d positional args, got %v", opt.N, args)
+	}
+	c.args = &args
+	return nil, nil
+}
+
+// validate the command line. Panics on error.
+func (c *Cmd) validate() {
+	c.validatePositional(false)
+}
+
+// validatePositional validates positional arguments. If c was defined with positional arguments,
+// any of its sub commands can't be defined with positional arguments.
+func (c *Cmd) validatePositional(foundPositional bool, chain ...string) {
+	chain = append(chain, c.name)
+	hasPositional := c.argsOpts != nil
+
+	if foundPositional && hasPositional {
+		panic("A command with positional arguments can't have a sub command with positional arguments. Found chain: " + strings.Join(chain, ">"))
+	}
+
+	for _, subcmd := range c.sub {
+		subcmd.validatePositional(foundPositional || hasPositional, chain...)
+	}
 }
 
 func (c *Cmd) usage() {
 	w := c.Output()
-	fmt.Fprintf(w, "%s\t%s\n", c.name, c.description)
-	if len(c.subCmd) > 0 {
+	usage := "Usage: " + c.name
+	if c.hasFlags() {
+		usage += " [flags]"
+	}
+	if c.argsOpts != nil {
+		usage += " " + c.argsOpts.usage()
+	}
+	fmt.Fprintln(w, usage)
+	fmt.Fprintln(w, c.synopsis)
+	if len(c.sub) > 0 {
 		fmt.Fprintf(w, "Subcommands:\n")
-		for _, name := range c.subCmdNames() {
-			fmt.Fprintf(w, "  %s\t%s\n", name, c.subCmd[name].description)
+		for _, name := range c.subNames() {
+			fmt.Fprintf(w, "  %s\t%s\n", name, c.sub[name].synopsis)
 		}
 	}
 
-	hasFlags := false
-	c.FlagSet.VisitAll(func(*flag.Flag) { hasFlags = true })
-
-	if hasFlags {
+	if c.hasFlags() {
 		fmt.Fprintf(w, "Flags:\n")
 		c.FlagSet.PrintDefaults()
 	}
+
+	if c.argsOpts != nil && c.argsOpts.Details != "" {
+		fmt.Fprintf(w, "Positional arguments:\n%s\n", c.argsOpts.Details)
+	}
 }
 
-// subCmdNames return all sub commands oredered alphabetically.
-func (c *Cmd) subCmdNames() []string {
-	subCmds := make([]string, 0, len(c.subCmd))
-	for subCmd := range c.subCmd {
-		subCmds = append(subCmds, subCmd)
+// subNames return all sub commands oredered alphabetically.
+func (c *Cmd) subNames() []string {
+	names := make([]string, 0, len(c.sub))
+	for name := range c.sub {
+		names = append(names, name)
 	}
-	sort.Strings(subCmds)
-	return subCmds
+	sort.Strings(names)
+	return names
+}
+
+func (c *Cmd) hasFlags() bool {
+	hasFlags := false
+	c.FlagSet.VisitAll(func(*flag.Flag) { hasFlags = true })
+	return hasFlags
 }
 
 func (c *Cmd) handleError(err error) error {
@@ -184,15 +290,22 @@ func (c *Cmd) handleError(err error) error {
 	return err
 }
 
+func (o *ArgsOpts) usage() string {
+	if o.Usage != "" {
+		return o.Usage
+	}
+	return "[args]"
+}
+
 func newCmd(cfg config) *Cmd {
 	flagSet := flag.NewFlagSet(os.Args[0], cfg.errorHandling)
 	flagSet.SetOutput(cfg.output)
 
 	cmd := &Cmd{
-		name:        cfg.name,
-		description: cfg.description,
-		FlagSet:     flagSet,
-		subCmd:      make(map[string]*Cmd),
+		name:     cfg.name,
+		synopsis: cfg.synopsis,
+		FlagSet:  flagSet,
+		sub:      make(map[string]*Cmd),
 	}
 	cmd.Usage = cmd.usage
 	return cmd
