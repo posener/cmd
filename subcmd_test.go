@@ -32,13 +32,14 @@ func testRoot() *testCommand {
 
 	root.Cmd = Root(
 		OptName("cmd"),
-		OptSynopsis("description"),
-		OptErrorHandling(flag.ContinueOnError),
-		OptOutput(&root.out))
+		SetErrorHandling(flag.ContinueOnError),
+		OptOutput(&root.out),
+		OptSynopsis("cmd synopsys"),
+		OptDetails("testing command line example"))
 
 	root.rootFlag = root.Bool("flag", false, "example of bool flag")
 
-	root.sub1 = root.SubCommand("sub1", "a sub command with flags and sub commands")
+	root.sub1 = root.SubCommand("sub1", "a sub command with flags and sub commands", OptDetails("sub command details"))
 	root.sub1Flag = root.sub1.String("flag", "", "example of string flag")
 	root.sub1Args = root.sub1.Args(nil)
 
@@ -161,7 +162,7 @@ func TestHelp(t *testing.T) {
 		{
 			args: []string{"cmd", "-h"},
 			want: `Usage: cmd [flags]
-description
+cmd synopsys
 Subcommands:
   sub1	a sub command with flags and sub commands
   sub2	a sub command without flags and sub commands
@@ -215,9 +216,9 @@ func TestCmd_failures(t *testing.T) {
 
 	t.Run("command can't have two sub commands with the same name", func(t *testing.T) {
 		cmd := Root()
-		cmd.SubCommand("sub", "description")
+		cmd.SubCommand("sub", "synopsys")
 
-		assert.Panics(t, func() { cmd.SubCommand("sub", "description") })
+		assert.Panics(t, func() { cmd.SubCommand("sub", "synopsys") })
 	})
 
 	t.Run("parse must get at least one argument", func(t *testing.T) {
@@ -229,7 +230,7 @@ func TestCmd_failures(t *testing.T) {
 	t.Run("both command and sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
 		cmd.Args(nil)
-		subcmd := cmd.SubCommand("sub", "description")
+		subcmd := cmd.SubCommand("sub", "synopsys")
 		subcmd.Args(nil)
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
@@ -238,8 +239,8 @@ func TestCmd_failures(t *testing.T) {
 	t.Run("both command and sub sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
 		cmd.Args(nil)
-		sub := cmd.SubCommand("sub", "description")
-		subsub := sub.SubCommand("sub", "description")
+		sub := cmd.SubCommand("sub", "synopsys")
+		subsub := sub.SubCommand("sub", "synopsys")
 		subsub.Args(nil)
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
@@ -247,9 +248,9 @@ func TestCmd_failures(t *testing.T) {
 
 	t.Run("both sub command and sub sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
-		sub := cmd.SubCommand("sub", "description")
+		sub := cmd.SubCommand("sub", "synopsys")
 		sub.Args(nil)
-		subsub := sub.SubCommand("sub", "description")
+		subsub := sub.SubCommand("sub", "synopsys")
 		subsub.Args(nil)
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
@@ -257,9 +258,9 @@ func TestCmd_failures(t *testing.T) {
 
 	t.Run("two different sub command may have positional arguments", func(t *testing.T) {
 		cmd := Root()
-		sub1 := cmd.SubCommand("sub1", "description")
+		sub1 := cmd.SubCommand("sub1", "synopsys")
 		sub1.Args(nil)
-		sub2 := cmd.SubCommand("sub2", "description")
+		sub2 := cmd.SubCommand("sub2", "synopsys")
 		sub2.Args(nil)
 
 		assert.NotPanics(t, func() { cmd.Parse([]string{"cmd"}) })

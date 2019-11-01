@@ -41,8 +41,9 @@ import (
 type Cmd struct {
 	// name of command or sub command.
 	name string
-	// synopsis of the command.
+	// synopsis and details for command usage string.
 	synopsis string
+	details  string
 	// argsOpts are the positional arguments options. If nil the command does not accept
 	// positional arguments.
 	argsOpts *ArgsOpts
@@ -69,58 +70,114 @@ type ArgsOpts struct {
 	Details string
 }
 
-type config struct {
+// configRoot is configuration for root command.
+type configRoot struct {
+	config
+	name          string
 	errorHandling flag.ErrorHandling
 	output        io.Writer
-	name          string
-	synopsis      string
 }
 
-// Option can configure command behavior.
-type Option func(o *config)
+// config is configuration that used both for root command and sub commands.
+type config struct {
+	synopsis string
+	details  string
+}
 
-// OptErrorHandling defines the behavior in case of an error in the `Parse` function.
-func OptErrorHandling(errorHandling flag.ErrorHandling) Option {
-	return func(cfg *config) {
+// optionRoot is an option that can be applied only on the root command and not on sub commands.
+type optionRoot interface {
+	applyRoot(o *configRoot)
+}
+
+// option is an option for configuring a sub commands.
+type option interface {
+	apply(o *config)
+}
+
+// optionRootFn is an option function that can be applied only on the root command and not on sub
+// commands.
+type optionRootFn func(cfg *configRoot)
+
+func (f optionRootFn) applyRoot(cfg *configRoot) { f(cfg) }
+
+// optionFn is an option function that can be applied on a root command or sub commands.
+type optionFn func(cfg *config)
+
+func (f optionFn) applyRoot(cfg *configRoot) { f(&cfg.config) }
+
+func (f optionFn) apply(cfg *config) { f(cfg) }
+
+// SetErrorHandling defines the behavior in case of an error in the `Parse` function.
+func SetErrorHandling(errorHandling flag.ErrorHandling) optionRootFn {
+	return func(cfg *configRoot) {
 		cfg.errorHandling = errorHandling
 	}
 }
 
 // OptOutput sets the output for the usage.
-func OptOutput(w io.Writer) Option {
-	return func(cfg *config) {
+func OptOutput(w io.Writer) optionRootFn {
+	return func(cfg *configRoot) {
 		cfg.output = w
 	}
 }
 
 // OptName sets a predefined name to the root command.
-func OptName(name string) Option {
-	return func(cfg *config) {
+func OptName(name string) optionRootFn {
+	return func(cfg *configRoot) {
 		cfg.name = name
 	}
 }
 
 // OptSynopsis sets a description to the root command.
-func OptSynopsis(synopsis string) Option {
-	return func(cfg *config) {
+func OptSynopsis(synopsis string) optionRootFn {
+	return func(cfg *configRoot) {
 		cfg.synopsis = synopsis
 	}
 }
 
+// OptSynopsis sets a description to the root command.
+func OptDetails(details string) optionFn {
+	return func(cfg *config) {
+		cfg.details = details
+	}
+}
+
 // Root creats a new root command.
-func Root(options ...Option) *Cmd {
+func Root(options ...optionRoot) *Cmd {
 	// Set default config.
-	cfg := config{
+	cfg := configRoot{
+		name:          os.Args[0],
 		errorHandling: flag.ExitOnError,
 		output:        os.Stderr,
-		name:          os.Args[0],
 	}
 	// Update with requested options.
 	for _, option := range options {
-		option(&cfg)
+		option.applyRoot(&cfg)
 	}
 
 	return newCmd(cfg)
+}
+
+// SubCommand creates a new sub command to the given command.
+func (c *Cmd) SubCommand(name string, synopsis string, options ...option) *Cmd {
+	if c.sub[name] != nil {
+		panic(fmt.Sprintf("sub command %q already exists", name))
+	}
+
+	cfg := configRoot{
+		name:          name,
+		errorHandling: c.ErrorHandling(),
+		output:        c.Output(),
+	}
+	// Update with requested options.
+	for _, option := range options {
+		option.apply(&cfg.config)
+	}
+
+	subCmd := newCmd(cfg)
+
+	c.sub[name] = subCmd
+	return subCmd
 }
 
 // Args returns the positional arguments for the command and enable defining options. Only a sub
@@ -137,22 +194,6 @@ func (c *Cmd) Args(opts *ArgsOpts) *[]string {
 	}
 	c.argsOpts = opts
 	return c.args
-}
-
-// SubCommand creates a new sub command to the given command.
-func (c *Cmd) SubCommand(name string, synopsis string) *Cmd {
-	if c.sub[name] != nil {
-		panic(fmt.Sprintf("sub command %q already exists", name))
-	}
-
-	subCmd := newCmd(config{
-		name:          name,
-		synopsis:      synopsis,
-		errorHandling: c.ErrorHandling(),
-		output:        c.Output(),
-	})
-	c.sub[name] = subCmd
-	return subCmd
 }
 
 // Parse command line arguments.
@@ -243,7 +284,14 @@ func (c *Cmd) usage() {
 		usage += " " + c.argsOpts.usage()
 	}
 	fmt.Fprintln(w, usage)
-	fmt.Fprintln(w, c.synopsis)
+	if c.synopsis != "" {
+		fmt.Fprintln(w, "")
+		fmt.Fprintln(w, c.synopsis)
+	}
+	if c.details != "" {
+		fmt.Fprintln(w, "")
+		fmt.Fprintln(w, c.details)
+	}
 	if len(c.sub) > 0 {
 		fmt.Fprintf(w, "Subcommands:\n")
 		for _, name := range c.subNames() {
@@ -297,13 +345,14 @@ func (o *ArgsOpts) usage() string {
 	return "[args]"
 }
 
-func newCmd(cfg config) *Cmd {
+func newCmd(cfg configRoot) *Cmd {
 	flagSet := flag.NewFlagSet(os.Args[0], cfg.errorHandling)
 	flagSet.SetOutput(cfg.output)
 
 	cmd := &Cmd{
 		name:     cfg.name,
 		synopsis: cfg.synopsis,
+		details:  cfg.details,
 		FlagSet:  flagSet,
 		sub:      make(map[string]*Cmd),
 	}
