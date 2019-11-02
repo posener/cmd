@@ -1,5 +1,4 @@
 {
-    "functions": true,
 	"badges": {
 		"travis_ci": true,
 		"code_cov": true,
