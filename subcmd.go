@@ -35,7 +35,7 @@ import (
 	"os"
 	"sort"
 
-	"github.com/posener/subcmd/internal/formatter"
+	"github.com/posener/formatter"
 )
 
 // Cmd is a command that can have set of flags and a sub command.
