@@ -46,7 +46,7 @@ type Cmd struct {
 	argsOpts *ArgsOpts
 
 	// FlagsSet holds the flags of the command.
-	*flag.FlagSet
+	*flagSet
 	// args holds the positional arguments of the commands.
 	args *[]string
 	// sub holds the sub commands of the command.
@@ -352,12 +352,12 @@ func (o *ArgsOpts) usage() string {
 }
 
 func newCmd(cfg config) *Cmd {
-	flagSet := flag.NewFlagSet(os.Args[0], cfg.errorHandling)
-	flagSet.SetOutput(cfg.output)
+	fs := flag.NewFlagSet(os.Args[0], cfg.errorHandling)
+	fs.SetOutput(cfg.output)
 
 	cmd := &Cmd{
 		config:  cfg,
-		FlagSet: flagSet,
+		flagSet: &flagSet{FlagSet: fs},
 		sub:     make(map[string]*Cmd),
 	}
 	cmd.Usage = cmd.usage
