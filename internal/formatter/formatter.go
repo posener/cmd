@@ -29,7 +29,7 @@ func (f *Formatter) insertIndent(b []byte) []byte {
 		// Insert indentation if a new line.
 		if len(f.Indent) > 0 && f.curWidth == 0 {
 			i, b = insert(b, i, f.Indent)
-			f.curWidth = len(f.Indent)
+			f.curWidth = len(f.Indent) + 1
 		} else {
 			f.curWidth++
 		}
