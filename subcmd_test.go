@@ -22,7 +22,7 @@ type testCommand struct {
 	sub11Flag *string
 
 	sub2     *Cmd
-	sub2Args *[]string
+	sub2Args ArgsStr
 
 	out bytes.Buffer
 }
@@ -36,20 +36,21 @@ func testRoot() *testCommand {
 		OptName("cmd"),
 		OptErrorHandling(flag.ContinueOnError),
 		OptOutput(&root.out),
-		OptSynopsis("cmd synopsys"),
+		OptSynopsis("cmd synopsis"),
 		OptDetails("testing command line example"))
 
 	root.rootFlag = root.Bool("flag", false, "example of bool flag")
 
 	root.sub1 = root.SubCommand("sub1", "a sub command with flags and sub commands", OptDetails(longText))
 	root.sub1Flag = root.sub1.String("flag", "", "example of string flag")
-	root.sub1Args = root.sub1.Args(nil)
+	root.sub1Args = root.sub1.Args("", "")
 
 	root.sub11 = root.sub1.SubCommand("sub1", "sub command of sub command")
 	root.sub11Flag = root.sub11.String("flag", "", "example of string flag")
 
 	root.sub2 = root.SubCommand("sub2", "a sub command without flags and sub commands")
-	root.sub2Args = root.sub2.Args(&ArgsOpts{N: 1, Usage: "[arg]", Details: "arg is a single argument"})
+	root.sub2Args = make(ArgsStr, 0, 1)
+	root.sub2.ArgsVar(&root.sub2Args, "[arg]", "arg is a single argument")
 
 	return &root
 }
@@ -165,7 +166,7 @@ func TestHelp(t *testing.T) {
 			args: []string{"cmd", "-h"},
 			want: `Usage: cmd [flags]
 
-cmd synopsys
+cmd synopsis
 
   testing command line example
 
@@ -183,7 +184,7 @@ Flags:
 		},
 		{
 			args: []string{"cmd", "sub1", "-h"},
-			want: `Usage: cmd sub1 [flags] [args]
+			want: `Usage: cmd sub1 [flags] [args...]
 
 a sub command with flags and sub commands
 
@@ -247,9 +248,9 @@ func TestCmd_failures(t *testing.T) {
 
 	t.Run("command can't have two sub commands with the same name", func(t *testing.T) {
 		cmd := Root()
-		cmd.SubCommand("sub", "synopsys")
+		cmd.SubCommand("sub", "synopsis")
 
-		assert.Panics(t, func() { cmd.SubCommand("sub", "synopsys") })
+		assert.Panics(t, func() { cmd.SubCommand("sub", "synopsis") })
 	})
 
 	t.Run("parse must get at least one argument", func(t *testing.T) {
@@ -260,47 +261,47 @@ func TestCmd_failures(t *testing.T) {
 
 	t.Run("both command and sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
-		cmd.Args(nil)
-		subcmd := cmd.SubCommand("sub", "synopsys")
-		subcmd.Args(nil)
+		cmd.Args("", "")
+		subcmd := cmd.SubCommand("sub", "synopsis")
+		subcmd.Args("", "")
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
 	})
 
 	t.Run("both command and sub sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
-		cmd.Args(nil)
-		sub := cmd.SubCommand("sub", "synopsys")
-		subsub := sub.SubCommand("sub", "synopsys")
-		subsub.Args(nil)
+		cmd.Args("", "")
+		sub := cmd.SubCommand("sub", "synopsis")
+		subsub := sub.SubCommand("sub", "synopsis")
+		subsub.Args("", "")
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
 	})
 
 	t.Run("both sub command and sub sub command have positional arguments should panic", func(t *testing.T) {
 		cmd := Root()
-		sub := cmd.SubCommand("sub", "synopsys")
-		sub.Args(nil)
-		subsub := sub.SubCommand("sub", "synopsys")
-		subsub.Args(nil)
+		sub := cmd.SubCommand("sub", "synopsis")
+		sub.Args("", "")
+		subsub := sub.SubCommand("sub", "synopsis")
+		subsub.Args("", "")
 
 		assert.Panics(t, func() { cmd.ParseArgs() })
 	})
 
 	t.Run("two different sub command may have positional arguments", func(t *testing.T) {
 		cmd := Root()
-		sub1 := cmd.SubCommand("sub1", "synopsys")
-		sub1.Args(nil)
-		sub2 := cmd.SubCommand("sub2", "synopsys")
-		sub2.Args(nil)
+		sub1 := cmd.SubCommand("sub1", "synopsis")
+		sub1.Args("", "")
+		sub2 := cmd.SubCommand("sub2", "synopsis")
+		sub2.Args("", "")
 
 		assert.NotPanics(t, func() { cmd.Parse([]string{"cmd"}) })
 	})
 
 	t.Run("calling positional more than once is not allowed", func(t *testing.T) {
 		cmd := Root()
-		cmd.Args(nil)
+		cmd.Args("", "")
 
-		assert.Panics(t, func() { cmd.Args(nil) })
+		assert.Panics(t, func() { cmd.Args("", "") })
 	})
 }

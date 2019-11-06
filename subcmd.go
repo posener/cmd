@@ -6,7 +6,7 @@
 // Additionally, this object exposes the `SubCommand` method, which returns another command object.
 // This objects also exposing the same API, enabling definition of flags and nested sub commands.
 //
-// The root object then have to be called with the `Parse` or `ParseArgs` methods, similiraly to
+// The root object then have to be called with the `Parse` or `ParseArgs` methods, similarly to
 // the `flag.Parse` call.
 //
 // The usage is automatically configured to show both sub commands and flags.
@@ -16,10 +16,6 @@
 // The `subcmd` library is opinionated about positional arguments: it enforces their definition
 // and parsing. The user can define for each sub command if and how many positional arguments it
 // accepts. Their usage is similar to the flag values usage.
-//
-// Example
-//
-// See ./example/main.go.
 //
 // Limitations
 //
@@ -41,32 +37,46 @@ import (
 // Cmd is a command that can have set of flags and a sub command.
 type Cmd struct {
 	config
-	// argsOpts are the positional arguments options. If nil the command does not accept
-	// positional arguments.
-	argsOpts *ArgsOpts
-
 	// FlagsSet holds the flags of the command.
 	*flagSet
-	// args holds the positional arguments of the commands.
-	args *[]string
 	// sub holds the sub commands of the command.
 	sub map[string]*Cmd
-	// output is used to write the usage output.
+	// args are the positional arguments. If nil the command does not accept
+	// positional arguments.
+	args                   ArgsValue
+	argsUsage, argsDetails string
 }
 
-// ArgsOpts are options for positional arguments.
-type ArgsOpts struct {
-	// N can be used to enforce a fixed number of positional arguments. Any non-positive number will
-	// be ignored.
-	N int
-	// Usage is a string representing the positional arguments which will be printed in the command
-	// usage. For example, The string "[source] [destination]" can represent usage of positional
-	// arguments for a move command.
-	Usage string
-	// Details can be used to provide farther explaination on the positional arguments in the usage
-	// help.
-	Details string
+// ArgsValue is interface for positional arguments variable. It can be used with the
+// `(*Cmd).ArgsVar` method. For examples of objects that implement this interface see ./args.go.
+type ArgsValue interface {
+	// Set should assign values to the positional arguments variable from list of positional
+	// arguments from the command line. It should return an error if the given list does not fit
+	// the requirements.
+	Set([]string) error
 }
+
+// ArgsFn is a function that implements Args. Usage example:
+//
+// 	var (
+// 		cmd      = subcmd.Root()
+// 		src, dst string
+// 	)
+//
+// 	func setArgs(args []string) error {
+// 		if len(args) != 2 {
+// 			return fmt.Errorf("expected src and dst, got %d arguments", len(args))
+// 		}
+// 		src, dst = args[0], args[1]
+// 		return nil
+// 	}
+//
+// 	func init() {
+// 		cmd.ArgsVar(subcmd.ArgsFn(setArgs), "[src] [dst]", "define source and destination")
+// 	}
+type ArgsFn func([]string) error
+
+func (f ArgsFn) Set(args []string) error { return f(args) }
 
 // config is configuration for root command.
 type config struct {
@@ -140,7 +150,7 @@ func OptDetails(details string) optionFn {
 	}
 }
 
-// Root creats a new root command.
+// Root creates a new root command.
 func Root(options ...optionRoot) *Cmd {
 	// Set default config.
 	cfg := config{
@@ -181,16 +191,34 @@ func (c *Cmd) SubCommand(name string, synopsis string, options ...option) *Cmd {
 // command that called this method accepts positional arguments. Calling a sub command with
 // positional arguments where they were not defined result in parsing error. The provided options
 // can be nil for default values.
-func (c *Cmd) Args(opts *ArgsOpts) *[]string {
-	if c.argsOpts != nil {
-		panic("Args() called more than once.")
+func (c *Cmd) Args(usage, details string) *[]string {
+	var args ArgsStr
+	c.ArgsVar(&args, usage, details)
+	return (*[]string)(&args)
+}
+
+// ArgsVar should be used to parse arguments with specific requirements or to specific object/s.
+// For example, accept only 3 positional arguments:
+//
+// 	var (
+// 		cmd  = subcmd.Root()
+// 		args = make(subcmd.ArgsStr, 3)
+// 	)
+//
+// 	func init() {
+// 		cmd.ArgsVar(args, "[arg1] [arg2] [arg3]", "provide 3 positional arguments")
+// 	}
+func (c *Cmd) ArgsVar(args ArgsValue, usage, details string) {
+	if c.args != nil {
+		panic("Args() or ArgsVar() called more than once.")
 	}
-	// Default options.
-	if opts == nil {
-		opts = &ArgsOpts{}
+	c.args = args
+	c.argsUsage = usage
+	c.argsDetails = details
+
+	if c.argsUsage == "" {
+		c.argsUsage = "[args...]"
 	}
-	c.argsOpts = opts
-	return c.args
 }
 
 // Parse command line arguments.
@@ -237,18 +265,13 @@ func (c *Cmd) parse(args []string) ([]string, error) {
 }
 
 func (c *Cmd) setArgs(args []string) ([]string, error) {
-	opt := c.argsOpts
-	if opt == nil {
+	if c.args == nil {
 		if len(args) > 0 {
 			return nil, fmt.Errorf("positional args not expected, got %v", args)
 		}
 		return args, nil
 	}
-	if opt.N > 0 && len(args) != opt.N {
-		return nil, fmt.Errorf("required %d positional args, got %v", opt.N, args)
-	}
-	c.args = &args
-	return nil, nil
+	return nil, c.args.Set(args)
 }
 
 // validate the command line. Panics on error.
@@ -259,7 +282,7 @@ func (c *Cmd) validate() {
 // validatePositional validates positional arguments. If c was defined with positional arguments,
 // any of its sub commands can't be defined with positional arguments.
 func (c *Cmd) validatePositional(parentWithPositional string) {
-	if hasPositional := c.argsOpts != nil; hasPositional {
+	if hasPositional := c.args != nil; hasPositional {
 		if parentWithPositional != "" {
 			panic(fmt.Sprintf(
 				"Illegal: parent %q and sub command %q both define positional areguments",
@@ -283,8 +306,8 @@ func (c *Cmd) usage() {
 	if c.hasFlags() {
 		usage += " [flags]"
 	}
-	if c.argsOpts != nil {
-		usage += " " + c.argsOpts.usage()
+	if c.args != nil {
+		usage += " " + c.argsUsage
 	}
 	fmt.Fprintf(w, usage+"\n\n")
 	if c.synopsis != "" {
@@ -308,14 +331,14 @@ func (c *Cmd) usage() {
 		fmt.Fprintf(w, "\n")
 	}
 
-	if c.argsOpts != nil && c.argsOpts.Details != "" {
+	if c.args != nil && c.argsDetails != "" {
 		fmt.Fprintf(w, "Positional arguments:\n\n")
-		fmt.Fprintf(detailsW, c.argsOpts.Details)
+		fmt.Fprintf(detailsW, c.argsDetails)
 		fmt.Fprintf(w, "\n\n")
 	}
 }
 
-// subNames return all sub commands oredered alphabetically.
+// subNames return all sub commands ordered alphabetically.
 func (c *Cmd) subNames() []string {
 	names := make([]string, 0, len(c.sub))
 	for name := range c.sub {
@@ -342,13 +365,6 @@ func (c *Cmd) handleError(err error) error {
 		panic(err)
 	}
 	return err
-}
-
-func (o *ArgsOpts) usage() string {
-	if o.Usage != "" {
-		return o.Usage
-	}
-	return "[args]"
 }
 
 func newCmd(cfg config) *Cmd {
