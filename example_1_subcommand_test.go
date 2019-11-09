@@ -12,10 +12,12 @@ var (
 	root = subcmd.Root()
 	// The `*Cmd` object can be used as the standard library `flag.FlagSet`.
 	flag0 = root.String("flag0", "", "root stringflag")
+
 	// From each command object, a sub command can be created. This can be done recursively.
 	sub1 = root.SubCommand("sub1", "first sub command")
 	// Each sub command can have flags attached.
 	flag1 = sub1.String("flag1", "", "sub1 string flag")
+
 	sub2  = root.SubCommand("sub2", "second sub command")
 	flag2 = sub1.Int("flag2", 0, "sub2 int flag")
 )
