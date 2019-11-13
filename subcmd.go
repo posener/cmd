@@ -1,6 +1,6 @@
 // subcmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 //
-// Define a `root` command object using the `Root` function.
+// Define a root command object using the `New` function.
 // This object exposes the standard library's `flag.FlagSet` API, which enables adding flags in the
 // standard way.
 // Additionally, this object exposes the `SubCommand` method, which returns another command object.
@@ -170,8 +170,8 @@ func OptDetails(details string) optionFn {
 	}
 }
 
-// Root creates a new root command.
-func Root(options ...optionRoot) *Cmd {
+// New creates a new root command.
+func New(options ...optionRoot) *Cmd {
 	// Set default config.
 	cfg := config{
 		name:          os.Args[0],
