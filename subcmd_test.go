@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/posener/complete/v2"
+	"github.com/posener/complete/v2/predict"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -34,6 +35,11 @@ type testCommand struct {
 
 const longText = "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum."
 
+// argsStrComp is ArgsStr with complete options.
+type argsStrComp = ArgsStr
+
+func (a argsStrComp) Predict(_ string) []string { return []string{"one", "two"} }
+
 func testNew() *testCommand {
 	var cmd testCommand
 
@@ -44,20 +50,20 @@ func testNew() *testCommand {
 		OptSynopsis("cmd synopsis"),
 		OptDetails("testing command line example"))
 
-	cmd.rootFlag = cmd.Bool("flag0", false, "example of bool flag")
+	cmd.rootFlag = cmd.Bool("flag0", false, "example of `bool` flag")
 
 	cmd.sub1 = cmd.SubCommand("sub1", "a sub command with flags and sub commands", OptDetails(longText))
-	cmd.sub1Flag = cmd.sub1.String("flag1", "", "example of string flag")
+	cmd.sub1Flag = cmd.sub1.String("flag1", "", "example of `string` flag", predict.OptValues("foo", "bar"))
 
 	cmd.sub11 = cmd.sub1.SubCommand("sub1", "sub command of sub command")
-	cmd.sub11Flag = cmd.sub11.String("flag11", "", "example of string flag")
+	cmd.sub11Flag = cmd.sub11.String("flag11", "", "example of `string` flag")
 	cmd.sub11Args = cmd.sub11.Args("", "")
 
 	cmd.sub12 = cmd.sub1.SubCommand("sub2", "sub command of sub command")
-	cmd.sub12Flag = cmd.sub12.String("flag12", "", "example of string flag")
+	cmd.sub12Flag = cmd.sub12.String("flag12", "", "example of `string` flag")
 
 	cmd.sub2 = cmd.SubCommand("sub2", "a sub command without flags and sub commands")
-	cmd.sub2Args = make(ArgsStr, 0, 1)
+	cmd.sub2Args = make(argsStrComp, 0, 1)
 	cmd.sub2.ArgsVar(&cmd.sub2Args, "[arg]", "arg is a single argument")
 
 	return &cmd
@@ -195,7 +201,7 @@ a sub command without flags and sub commands
 
 Flags:
 
-  -flag0
+  -flag0 bool
     	example of bool flag
 
 Positional arguments:
@@ -212,7 +218,7 @@ sub command of sub command
 
 Flags:
 
-  -flag0
+  -flag0 bool
     	example of bool flag
   -flag1 string
     	example of string flag
@@ -229,7 +235,7 @@ sub command of sub command
 
 Flags:
 
-  -flag0
+  -flag0 bool
     	example of bool flag
   -flag1 string
     	example of string flag
@@ -248,6 +254,36 @@ Flags:
 			assert.Equal(t, tt.want, cmd.out.String())
 		})
 	}
+}
+
+func TestCmd_valueCheck(t *testing.T) {
+	t.Parallel()
+
+	t.Run("check enabled", func(t *testing.T) {
+		cmd := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
+		cmd.String("foo", "", "", predict.OptValues("foo", "bar"), predict.OptCheck())
+		cmd.Args("", "", predict.OptValues("one", "two"), predict.OptCheck())
+
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-foo", "foo"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-foo", "fo"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-foo", "fooo"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "one"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "on"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "onee"}))
+	})
+
+	t.Run("check disabled", func(t *testing.T) {
+		cmd := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
+		cmd.String("foo", "", "", predict.OptValues("foo", "bar"))
+		cmd.Args("", "", predict.OptValues("one", "two"))
+
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-foo", "foo"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-foo", "fo"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-foo", "fooo"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "one"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "on"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "onee"}))
+	})
 }
 
 func TestCmd_failures(t *testing.T) {
@@ -347,8 +383,14 @@ func TestComplete(t *testing.T) {
 		line        string
 		completions []string
 	}{
+		// Check completion of sub commands.
 		{line: "su", completions: []string{"sub1", "sub2"}},
+		// Check completion of flag names.
 		{line: "sub1 sub1 -f", completions: []string{"-flag1", "-flag0", "-flag11"}},
+		// Check completion of flag values.
+		{line: "sub1 sub1 -flag1 ", completions: []string{"foo", "bar"}},
+		// Check completion for positional arguments.
+		{line: "sub2 ", completions: []string{"-flag0", "-h", "one", "two"}},
 	}
 
 	for _, tt := range tests {

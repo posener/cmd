@@ -2,6 +2,7 @@ package subcmd
 
 import (
 	"flag"
+
 	"github.com/posener/complete/v2"
 )
 
@@ -42,5 +43,11 @@ func (c *completer) FlagGet(flag string) complete.Predictor {
 }
 
 func (c *completer) ArgsGet() complete.Predictor {
+	if c.args.predict.Predictor != nil {
+		return c.args.predict
+	}
+	if comp, ok := c.args.value.(complete.Predictor); ok {
+		return comp
+	}
 	return nil
 }

@@ -3,6 +3,9 @@ package subcmd
 import (
 	"flag"
 	"time"
+
+	"github.com/posener/complete/v2/compflag"
+	"github.com/posener/complete/v2/predict"
 )
 
 func (c *SubCmd) checkNewFlag() {
@@ -38,9 +41,9 @@ func (c *SubCmd) VisitAll(fn func(*flag.Flag)) {
 	c.flagSet.VisitAll(fn)
 }
 
-func (c *SubCmd) String(name string, value string, usage string) *string {
+func (c *SubCmd) String(name string, value string, usage string, options ...predict.Option) *string {
 	c.checkNewFlag()
-	return c.flagSet.String(name, value, usage)
+	return c.compFlagSet().String(name, value, usage, options...)
 }
 
 func (c *SubCmd) StringVar(p *string, name string, value string, usage string) {
@@ -48,9 +51,9 @@ func (c *SubCmd) StringVar(p *string, name string, value string, usage string) {
 	c.flagSet.StringVar(p, name, value, usage)
 }
 
-func (c *SubCmd) Bool(name string, value bool, usage string) *bool {
+func (c *SubCmd) Bool(name string, value bool, usage string, options ...predict.Option) *bool {
 	c.checkNewFlag()
-	return c.flagSet.Bool(name, value, usage)
+	return c.compFlagSet().Bool(name, value, usage, options...)
 }
 
 func (c *SubCmd) BoolVar(p *bool, name string, value bool, usage string) {
@@ -58,9 +61,9 @@ func (c *SubCmd) BoolVar(p *bool, name string, value bool, usage string) {
 	c.flagSet.BoolVar(p, name, value, usage)
 }
 
-func (c *SubCmd) Int(name string, value int, usage string) *int {
+func (c *SubCmd) Int(name string, value int, usage string, options ...predict.Option) *int {
 	c.checkNewFlag()
-	return c.flagSet.Int(name, value, usage)
+	return c.compFlagSet().Int(name, value, usage, options...)
 }
 
 func (c *SubCmd) IntVar(p *int, name string, value int, usage string) {
@@ -116,4 +119,8 @@ func (c *SubCmd) Duration(name string, value time.Duration, usage string) *time.
 func (c *SubCmd) DurationVar(p *time.Duration, name string, value time.Duration, usage string) {
 	c.checkNewFlag()
 	c.flagSet.DurationVar(p, name, value, usage)
+}
+
+func (c *SubCmd) compFlagSet() *compflag.FlagSet {
+	return (*compflag.FlagSet)(c.flagSet)
 }

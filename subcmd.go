@@ -11,7 +11,7 @@
 //
 // The usage is automatically configured to show both sub commands and flags.
 //
-// Automatic bash completion is enabled for command sub commands and flag names.
+// Automatic bash completion is enabled.
 //
 // Principles
 //
@@ -45,6 +45,7 @@ import (
 	"strings"
 
 	"github.com/posener/complete/v2"
+	"github.com/posener/complete/v2/predict"
 	"github.com/posener/formatter"
 )
 
@@ -70,6 +71,7 @@ type SubCmd struct {
 type argsData struct {
 	value          ArgsValue
 	usage, details string
+	predict        predict.Config
 }
 
 // ArgsValue is interface for positional arguments variable. It can be used with the
@@ -248,9 +250,9 @@ func (c *SubCmd) SubCommand(name string, synopsis string, options ...option) *Su
 // command that called this method accepts positional arguments. Calling a sub command with
 // positional arguments where they were not defined result in parsing error. The provided options
 // can be nil for default values.
-func (c *SubCmd) Args(usage, details string) *[]string {
+func (c *SubCmd) Args(usage, details string, options ...predict.Option) *[]string {
 	var args ArgsStr
-	c.ArgsVar(&args, usage, details)
+	c.ArgsVar(&args, usage, details, options...)
 	return (*[]string)(&args)
 }
 
@@ -265,7 +267,10 @@ func (c *SubCmd) Args(usage, details string) *[]string {
 // 	func init() {
 // 		cmd.ArgsVar(args, "[arg1] [arg2] [arg3]", "provide 3 positional arguments")
 // 	}
-func (c *SubCmd) ArgsVar(value ArgsValue, usage, details string) {
+//
+// The value argument can optionally implement `github.com/posener/complete.Predictor` interface.
+// Then, command completion for the predictor will apply.
+func (c *SubCmd) ArgsVar(value ArgsValue, usage, details string, options ...predict.Option) {
 	c.checkNewArgs()
 	if c.args != nil {
 		panic("Args() or ArgsVar() called more than once.")
@@ -274,6 +279,7 @@ func (c *SubCmd) ArgsVar(value ArgsValue, usage, details string) {
 		value:   value,
 		usage:   usage,
 		details: details,
+		predict: predict.Options(options...),
 	}
 
 	if c.args.usage == "" {
@@ -332,6 +338,12 @@ func (c *SubCmd) setArgs(args []string) ([]string, error) {
 			return nil, fmt.Errorf("positional args not expected, got %v", args)
 		}
 		return args, nil
+	}
+	for _, arg := range args {
+		err := c.args.predict.Check(arg)
+		if err != nil {
+			return nil, fmt.Errorf("arg %q: %v", arg, err)
+		}
 	}
 	return nil, c.args.value.Set(args)
 }
