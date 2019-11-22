@@ -250,7 +250,7 @@ Flags:
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
 			cmd := testNew()
 			err := cmd.Parse(tt.args)
-			assert.True(t, errors.As(err, &flag.ErrHelp))
+			assert.Error(t, err)
 			assert.Equal(t, tt.want, cmd.out.String())
 		})
 	}
