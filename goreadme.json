@@ -1,5 +1,6 @@
 {
 	"recursive": false,
+	"skip_sub_packages": true,
 	"badges": {
 		"travis_ci": true,
 		"code_cov": true,
