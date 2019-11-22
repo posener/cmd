@@ -284,6 +284,28 @@ func TestCmd_valueCheck(t *testing.T) {
 		assert.NoError(t, cmd.Parse([]string{"cmd", "on"}))
 		assert.NoError(t, cmd.Parse([]string{"cmd", "onee"}))
 	})
+
+	t.Run("check files", func(t *testing.T) {
+		cmd := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
+		cmd.String("file", "", "", predict.OptPredictor(predict.Files("*.go")), predict.OptCheck())
+
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-file", "subcmd.go"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-file", "./subcmd.go"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-file", "example/main.go"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-file", "no-such-file.go"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-file", "README.md"}))
+
+	})
+
+	t.Run("check dirs", func(t *testing.T) {
+		cmd := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
+		cmd.String("dir", "", "", predict.OptPredictor(predict.Dirs("*")), predict.OptCheck())
+
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-dir", "example/"}))
+		assert.NoError(t, cmd.Parse([]string{"cmd", "-dir", "./example/"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-dir", "no-such-dir/"}))
+		assert.Error(t, cmd.Parse([]string{"cmd", "-dir", "subcmd.go"}))
+	})
 }
 
 func TestCmd_failures(t *testing.T) {
