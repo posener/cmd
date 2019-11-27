@@ -5,22 +5,22 @@
 [![GoDoc](https://godoc.org/github.com/posener/cmd?status.svg)](http://godoc.org/github.com/posener/cmd)
 [![goreadme](https://goreadme.herokuapp.com/badge/posener/cmd.svg)](https://goreadme.herokuapp.com)
 
-cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
+Package cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 
 This library extends the standard library `flag` package to support sub commands and more
 features in a minimalistic and idiomatic API.
 
 Features:
 
-* Sub commands.
+- [x] Sub commands.
 
-* Automatic bash completion.
+- [x] Automatic bash completion.
 
-* Flag values definition and check.
+- [x] Flag values definition and check.
 
-* Explicit positional arguments definition.
+- [x] Explicit positional arguments definition.
 
-* Automatic usage text.
+- [x] Automatic usage text.
 
 #### Usage
 
