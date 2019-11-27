@@ -1,4 +1,4 @@
-package subcmd
+package cmd
 
 import (
 	"flag"
@@ -9,15 +9,15 @@ import (
 type completer SubCmd
 
 func (c *completer) SubCmdList() []string {
-	subcmd := (*SubCmd)(c)
-	return subcmd.subNames()
+	cmd := (*SubCmd)(c)
+	return cmd.subNames()
 }
 
-func (c *completer) SubCmdGet(cmd string) complete.Completer {
-	if c.sub[cmd] == nil {
+func (c *completer) SubCmdGet(name string) complete.Completer {
+	if c.sub[name] == nil {
 		return nil
 	}
-	return (*completer)(c.sub[cmd])
+	return (*completer)(c.sub[name])
 }
 
 func (c *completer) FlagList() []string {

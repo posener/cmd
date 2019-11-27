@@ -1,4 +1,4 @@
-// subcmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
+// cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 //
 // Define a root command object using the `New` function.
 // This object exposes the standard library's `flag.FlagSet` API, which enables adding flags in the
@@ -34,7 +34,7 @@
 //
 // * When flag configuration is wrong, the program will panic when starts. Most of them in flag
 // definition stage, and not after flag parsing stage.
-package subcmd
+package cmd
 
 import (
 	"flag"
@@ -86,7 +86,7 @@ type ArgsValue interface {
 // ArgsFn is a function that implements Args. Usage example:
 //
 // 	var (
-// 		cmd      = subcmd.Root()
+// 		root     = cmd.Root()
 // 		src, dst string
 // 	)
 //
@@ -99,7 +99,7 @@ type ArgsValue interface {
 // 	}
 //
 // 	func init() {
-// 		cmd.ArgsVar(subcmd.ArgsFn(setArgs), "[src] [dst]", "define source and destination")
+// 		root.ArgsVar(cmd.ArgsFn(setArgs), "[src] [dst]", "define source and destination")
 // 	}
 type ArgsFn func([]string) error
 
@@ -260,12 +260,12 @@ func (c *SubCmd) Args(usage, details string, options ...predict.Option) *[]strin
 // For example, accept only 3 positional arguments:
 //
 // 	var (
-// 		cmd  = subcmd.Root()
-// 		args = make(subcmd.ArgsStr, 3)
+// 		root = cmd.Root()
+// 		args = make(cmd.ArgsStr, 3)
 // 	)
 //
 // 	func init() {
-// 		cmd.ArgsVar(args, "[arg1] [arg2] [arg3]", "provide 3 positional arguments")
+// 		root.ArgsVar(args, "[arg1] [arg2] [arg3]", "provide 3 positional arguments")
 // 	}
 //
 // The value argument can optionally implement `github.com/posener/complete.Predictor` interface.
@@ -300,17 +300,17 @@ func (c *SubCmd) parse(args []string) ([]string, error) {
 		if len(args) == 0 {
 			return nil, fmt.Errorf("must provide sub command")
 		}
-		cmd := args[0]
-		if c.sub[cmd] == nil {
+		name := args[0]
+		if c.sub[name] == nil {
 			// Check for help flag, which can be applied on any level of sub command.
-			if cmd == "-h" || cmd == "-help" || cmd == "--help" {
+			if name == "-h" || name == "-help" || name == "--help" {
 				c.Usage()
 				return nil, flag.ErrHelp
 			}
-			return nil, fmt.Errorf("invalid command: %s", cmd)
+			return nil, fmt.Errorf("invalid command: %s", name)
 		}
 		var err error
-		args, err = c.sub[cmd].parse(args)
+		args, err = c.sub[name].parse(args)
 		if err != nil {
 			return nil, fmt.Errorf("%s > %v", c.name, err)
 		}
@@ -431,19 +431,19 @@ func (c *Cmd) complete(args []string) {
 }
 
 func newCmd(cfg config) *Cmd {
-	cmd := &Cmd{SubCmd: newSubCmd(cfg, nil)}
-	cmd.isRoot = true
-	return cmd
+	c := &Cmd{SubCmd: newSubCmd(cfg, nil)}
+	c.isRoot = true
+	return c
 }
 
 func newSubCmd(cfg config, parentFs *flag.FlagSet) *SubCmd {
-	subcmd := &SubCmd{
+	cmd := &SubCmd{
 		config:  cfg,
 		flagSet: copyFlagSet(cfg, parentFs),
 		sub:     make(map[string]*SubCmd),
 	}
-	subcmd.flagSet.Usage = subcmd.Usage
-	return subcmd
+	cmd.flagSet.Usage = cmd.Usage
+	return cmd
 }
 
 func detailsWriter(w io.Writer) io.Writer {

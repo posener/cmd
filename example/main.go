@@ -3,13 +3,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 var (
 	// Define a root command. Some options can be set using the `Opt*` functions. It returns a
 	// `*Cmd` object.
-	root = subcmd.New()
+	root = cmd.New()
 	// The `*Cmd` object can be used as the standard library `flag.FlagSet`.
 	flag0 = root.String("flag0", "", "root stringflag")
 	// From each command object, a sub command can be created. This can be done recursively.

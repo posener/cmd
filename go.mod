@@ -1,4 +1,4 @@
-module github.com/posener/subcmd
+module github.com/posener/cmd
 
 go 1.13
 

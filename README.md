@@ -1,11 +1,11 @@
-# subcmd
+# cmd
 
-[![Build Status](https://travis-ci.org/posener/subcmd.svg?branch=master)](https://travis-ci.org/posener/subcmd)
-[![codecov](https://codecov.io/gh/posener/subcmd/branch/master/graph/badge.svg)](https://codecov.io/gh/posener/subcmd)
-[![GoDoc](https://godoc.org/github.com/posener/subcmd?status.svg)](http://godoc.org/github.com/posener/subcmd)
-[![goreadme](https://goreadme.herokuapp.com/badge/posener/subcmd.svg)](https://goreadme.herokuapp.com)
+[![Build Status](https://travis-ci.org/posener/cmd.svg?branch=master)](https://travis-ci.org/posener/cmd)
+[![codecov](https://codecov.io/gh/posener/cmd/branch/master/graph/badge.svg)](https://codecov.io/gh/posener/cmd)
+[![GoDoc](https://godoc.org/github.com/posener/cmd?status.svg)](http://godoc.org/github.com/posener/cmd)
+[![goreadme](https://goreadme.herokuapp.com/badge/posener/cmd.svg)](https://goreadme.herokuapp.com)
 
-subcmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
+cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 
 Define a root command object using the `New` function.
 This object exposes the standard library's `flag.FlagSet` API, which enables adding flags in the
@@ -54,13 +54,13 @@ package main
 import (
 	"fmt"
 
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 var (
 	// Define a cmd command. Some options can be set using the `Opt*` functions. It returns a
 	// `*Cmd` object.
-	cmd = subcmd.New()
+	cmd = cmd.New()
 	// The `*Cmd` object can be used as the standard library `flag.FlagSet`.
 	flag0 = cmd.String("flag0", "", "root string flag")
 
@@ -103,13 +103,13 @@ package main
 import (
 	"fmt"
 	"github.com/posener/complete/v2/predict"
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 func main() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		cmd = cmd.New()
 		// Define a flag with valid values 'foo' and 'bar', and enforce the values by `OptCheck()`.
 		flag1 = cmd.String("flag1", "", "first flag", predict.OptValues("foo", "bar"), predict.OptCheck())
 		// Define a flag with valid values of Go file names.
@@ -120,7 +120,7 @@ func main() {
 	)
 
 	// Should be in `main()`.
-	cmd.Parse([]string{"cmd", "-flag1", "foo", "-file", "subcmd.go", "buz", "bazz"})
+	cmd.Parse([]string{"cmd", "-flag1", "foo", "-file", "cmd.go", "buz", "bazz"})
 
 	// Test:
 
@@ -132,7 +132,7 @@ func main() {
  Output:
 
 ```
-foo subcmd.go [buz bazz]
+foo cmd.go [buz bazz]
 
 ```
 
@@ -147,13 +147,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 func main() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		cmd = cmd.New()
 		// Positional arguments can be defined as any other flag.
 		args = cmd.Args("[args...]", "positional arguments for command line")
 	)
@@ -184,13 +184,13 @@ package main
 
 import (
 	"fmt"
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 func main() {
 	// Should be defined in global `var`.
 	var (
-		cmd      = subcmd.New()
+		cmd      = cmd.New()
 		src, dst string
 	)
 
@@ -204,7 +204,7 @@ func main() {
 	}
 
 	// Should be in `init()`.
-	cmd.ArgsVar(subcmd.ArgsFn(argsFn), "[src] [dst]", "positional arguments for command line")
+	cmd.ArgsVar(cmd.ArgsFn(argsFn), "[src] [dst]", "positional arguments for command line")
 
 	// Should be in `main()`.
 	cmd.Parse([]string{"cmd", "from.txt", "to.txt"})
@@ -232,15 +232,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 func main() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		cmd = cmd.New()
 		// Define positional arguments of type integer.
-		args subcmd.ArgsInt
+		args cmd.ArgsInt
 	)
 
 	// Should be in `init()`.
@@ -276,15 +276,15 @@ package main
 
 import (
 	"fmt"
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 func main() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		cmd = cmd.New()
 		// Define arguments with cap=2 will ensure that the number of arguments is always 2.
-		args = make(subcmd.ArgsStr, 2)
+		args = make(cmd.ArgsStr, 2)
 	)
 
 	// Should be in `init()`.

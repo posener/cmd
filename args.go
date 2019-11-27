@@ -1,4 +1,4 @@
-package subcmd
+package cmd
 
 import (
 	"fmt"
@@ -12,16 +12,16 @@ import (
 //
 // To get a list of arbitrary number of arguments:
 //
-// 	root := subcmd.Root()
+// 	root := cmd.Root()
 //
-// 	var subcmd.ArgsStr args
+// 	var cmd.ArgsStr args
 // 	root.ArgsVar(&args, "[arg...]", "list of arguments")
 //
 // To get a list of specific number of arguments:
 //
-// 	root := subcmd.Root()
+// 	root := cmd.Root()
 //
-// 	args := make(subcmd.ArgsStr, 3)
+// 	args := make(cmd.ArgsStr, 3)
 // 	root.ArgsVar(&args, "[arg1] [arg2] [arg3]", "list of 3 arguments")
 type ArgsStr []string
 
@@ -40,16 +40,16 @@ func (a *ArgsStr) Set(args []string) error {
 //
 // To get a list of arbitrary number of integers:
 //
-// 	root := subcmd.Root()
+// 	root := cmd.Root()
 //
-// 	var subcmd.ArgsInt args
+// 	var cmd.ArgsInt args
 // 	root.ArgsVar(&args, "[int...]", "list of integer args")
 //
 // To get a list of specific number of integers:
 //
-// 	root := subcmd.Root()
+// 	root := cmd.Root()
 //
-// 	args := make(subcmd.ArgsInt, 3)
+// 	args := make(cmd.ArgsInt, 3)
 // 	root.ArgsVar(&args, "[int1] [int2] [int3]", "list of 3 integers")
 type ArgsInt []int
 

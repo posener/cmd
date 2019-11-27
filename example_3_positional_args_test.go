@@ -1,9 +1,9 @@
-package subcmd_test
+package cmd_test
 
 import (
 	"fmt"
 
-	"github.com/posener/subcmd"
+	"github.com/posener/cmd"
 )
 
 // Usage of positional arguments. If a program accepts positional arguments it must declare it using
@@ -12,13 +12,13 @@ import (
 func Example_args() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		root = cmd.New()
 		// Positional arguments can be defined as any other flag.
-		args = cmd.Args("[args...]", "positional arguments for command line")
+		args = root.Args("[args...]", "positional arguments for command line")
 	)
 
 	// Should be in `main()`.
-	cmd.Parse([]string{"cmd", "v1", "v2", "v3"})
+	root.Parse([]string{"cmd", "v1", "v2", "v3"})
 
 	// Test:
 
@@ -30,16 +30,16 @@ func Example_args() {
 func Example_argsN() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		root = cmd.New()
 		// Define arguments with cap=2 will ensure that the number of arguments is always 2.
-		args = make(subcmd.ArgsStr, 2)
+		args = make(cmd.ArgsStr, 2)
 	)
 
 	// Should be in `init()`.
-	cmd.ArgsVar(&args, "[src] [dst]", "positional arguments for command line")
+	root.ArgsVar(&args, "[src] [dst]", "positional arguments for command line")
 
 	// Should be in `main()`.
-	cmd.Parse([]string{"cmd", "from.txt", "to.txt"})
+	root.Parse([]string{"cmd", "from.txt", "to.txt"})
 
 	// Test:
 
@@ -51,16 +51,16 @@ func Example_argsN() {
 func Example_argsInt() {
 	// Should be defined in global `var`.
 	var (
-		cmd = subcmd.New()
+		root = cmd.New()
 		// Define positional arguments of type integer.
-		args subcmd.ArgsInt
+		args cmd.ArgsInt
 	)
 
 	// Should be in `init()`.
-	cmd.ArgsVar(&args, "[int...]", "numbers to sum")
+	root.ArgsVar(&args, "[int...]", "numbers to sum")
 
 	// Should be in `main()`.
-	cmd.Parse([]string{"cmd", "10", "20", "30"})
+	root.Parse([]string{"cmd", "10", "20", "30"})
 
 	// Test:
 
@@ -76,7 +76,7 @@ func Example_argsInt() {
 func Example_argsFn() {
 	// Should be defined in global `var`.
 	var (
-		cmd      = subcmd.New()
+		root     = cmd.New()
 		src, dst string
 	)
 
@@ -90,10 +90,10 @@ func Example_argsFn() {
 	}
 
 	// Should be in `init()`.
-	cmd.ArgsVar(subcmd.ArgsFn(argsFn), "[src] [dst]", "positional arguments for command line")
+	root.ArgsVar(cmd.ArgsFn(argsFn), "[src] [dst]", "positional arguments for command line")
 
 	// Should be in `main()`.
-	cmd.Parse([]string{"cmd", "from.txt", "to.txt"})
+	root.Parse([]string{"cmd", "from.txt", "to.txt"})
 
 	// Test:
 
