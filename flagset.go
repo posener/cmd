@@ -111,9 +111,9 @@ func (c *SubCmd) UintVar64(p *uint64, name string, value uint64, usage string) {
 	c.flagSet.Uint64Var(p, name, value, usage)
 }
 
-func (c *SubCmd) Duration(name string, value time.Duration, usage string) *time.Duration {
+func (c *SubCmd) Duration(name string, value time.Duration, usage string, options ...predict.Option) *time.Duration {
 	c.checkNewFlag()
-	return c.flagSet.Duration(name, value, usage)
+	return c.compFlagSet().Duration(name, value, usage, options...)
 }
 
 func (c *SubCmd) DurationVar(p *time.Duration, name string, value time.Duration, usage string) {
