@@ -5,15 +5,15 @@
 //
 // Features:
 //
-// [x] Sub commands.
+// * Sub commands.
 //
-// [x] Automatic bash completion.
+// * Automatic bash completion.
 //
-// [x] Flag values definition and check.
+// * Flag values definition and check.
 //
-// [x] Explicit positional arguments definition.
+// * Explicit positional arguments definition.
 //
-// [x] Automatic usage text.
+// * Automatic usage text.
 //
 // Usage
 //
