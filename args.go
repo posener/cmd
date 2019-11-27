@@ -25,6 +25,7 @@ import (
 // 	root.ArgsVar(&args, "[arg1] [arg2] [arg3]", "list of 3 arguments")
 type ArgsStr []string
 
+// Set implements the ArgsValue interface.
 func (a *ArgsStr) Set(args []string) error {
 	if cap(*a) > 0 && len(args) != cap(*a) {
 		return fmt.Errorf("required %d positional args, got %v", cap(*a), args)
@@ -53,6 +54,7 @@ func (a *ArgsStr) Set(args []string) error {
 // 	root.ArgsVar(&args, "[int1] [int2] [int3]", "list of 3 integers")
 type ArgsInt []int
 
+// Set implements the ArgsValue interface.
 func (a *ArgsInt) Set(args []string) error {
 	if cap(*a) > 0 && len(args) != cap(*a) {
 		return fmt.Errorf("required %d positional args, got %v", cap(*a), args)

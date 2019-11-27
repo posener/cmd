@@ -1,4 +1,4 @@
-// cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
+// Package cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 //
 // This library extends the standard library `flag` package to support sub commands and more
 // features in a minimalistic and idiomatic API.
@@ -110,6 +110,7 @@ type ArgsValue interface {
 // 	}
 type ArgsFn func([]string) error
 
+// Set implements the ArgsValue interface.
 func (f ArgsFn) Set(args []string) error { return f(args) }
 
 // config is configuration for root command.
@@ -177,7 +178,7 @@ func OptSynopsis(synopsis string) optionRootFn {
 	}
 }
 
-// OptSynopsis sets a description to the root command.
+// OptDetails sets a detailed description to the root command.
 func OptDetails(details string) optionFn {
 	return func(cfg *subConfig) {
 		cfg.details = details
@@ -361,6 +362,7 @@ func (c *SubCmd) setArgs(args []string) ([]string, error) {
 	return nil, c.args.value.Set(args)
 }
 
+// Usage prints the sub command usage to the defined output.
 func (c *SubCmd) Usage() {
 	w := c.output
 	detailsW := detailsWriter(w)
