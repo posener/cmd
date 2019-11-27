@@ -16,7 +16,7 @@ func Example_args() {
 	)
 
 	// Parse fake command line arguments.
-	root.Parse([]string{"cmd", "v1", "v2", "v3"})
+	root.ParseArgs("cmd", "v1", "v2", "v3")
 
 	// Test:
 
@@ -41,7 +41,7 @@ func Example_argsN() {
 
 	// Should be in `main()`.
 	// Parse fake command line arguments.
-	root.Parse([]string{"cmd", "from.txt", "to.txt"})
+	root.ParseArgs("cmd", "from.txt", "to.txt")
 
 	// Test:
 
@@ -65,7 +65,7 @@ func Example_argsInt() {
 
 	// Should be in `main()`.
 	// Parse fake command line arguments.
-	root.Parse([]string{"cmd", "10", "20", "30"})
+	root.ParseArgs("cmd", "10", "20", "30")
 
 	// Test:
 
@@ -102,7 +102,7 @@ func Example_argsFn() {
 	root.ArgsVar(argsFn, "[src] [dst]", "positional arguments for command line")
 
 	// Should be in `main()`.
-	root.Parse([]string{"cmd", "from.txt", "to.txt"})
+	root.ParseArgs("cmd", "from.txt", "to.txt")
 
 	// Test:
 

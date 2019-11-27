@@ -25,7 +25,7 @@ var (
 // Definition and usage of sub commands and sub commands flags.
 func Example() {
 	// Parse command line arguments.
-	root.Parse([]string{"cmd", "sub1", "-flag1", "value"})
+	root.ParseArgs("cmd", "sub1", "-flag1", "value")
 
 	// Check which sub command was choses by the user.
 	switch {

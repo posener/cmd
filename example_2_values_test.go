@@ -27,7 +27,7 @@ func Example_values() {
 	)
 
 	// Parse fake command line arguments.
-	root.Parse([]string{"cmd", "-flag1", "foo", "-file", "cmd.go", "buz", "bazz"})
+	root.ParseArgs("cmd", "-flag1", "foo", "-file", "cmd.go", "buz", "bazz")
 
 	// Test:
 

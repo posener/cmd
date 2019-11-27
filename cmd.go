@@ -1,17 +1,29 @@
 // cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 //
+// This library extends the standard library `flag` package to support sub commands and more
+// features in a minimalistic and idiomatic API.
+//
+// Features:
+//
+// [x] Sub commands.
+//
+// [x] Automatic bash completion.
+//
+// [x] Flag values definition and check.
+//
+// [x] Explicit positional arguments definition.
+//
+// [x] Automatic usage text.
+//
+// Usage
+//
 // Define a root command object using the `New` function.
 // This object exposes the standard library's `flag.FlagSet` API, which enables adding flags in the
 // standard way.
 // Additionally, this object exposes the `SubCommand` method, which returns another command object.
 // This objects also exposing the same API, enabling definition of flags and nested sub commands.
-//
-// The root object then have to be called with the `Parse` or `ParseArgs` methods, similarly to
+// The root object then have to be called with the `Parse` method, similarly to
 // the `flag.Parse` call.
-//
-// The usage is automatically configured to show both sub commands and flags.
-//
-// Automatic bash completion is enabled.
 //
 // Principles
 //
@@ -24,16 +36,10 @@
 //
 // 	[command] [sub commands...] [flags...] [positional args...]
 //
-// * Positional arguments are as any other flag: their number and type should be enforced and
-// checked.
-//
-// * When a command that defined positional arguments, all its sub commands has these positional
+// * When a command defines positional arguments, all its sub commands has these positional
 // arguments and thus can't define their own positional arguments.
 //
-// * Usage format is standard, programs can't define their own format.
-//
-// * When flag configuration is wrong, the program will panic when starts. Most of them in flag
-// definition stage, and not after flag parsing stage.
+// * When flag configuration is wrong, the program will panic.
 package cmd
 
 import (
@@ -195,12 +201,12 @@ func New(options ...optionRoot) *Cmd {
 }
 
 // Parse command line arguments.
-func (c *Cmd) ParseArgs() error {
-	return c.Parse(os.Args)
+func (c *Cmd) Parse() error {
+	return c.ParseArgs(os.Args...)
 }
 
-// Parse a set of arguments.
-func (c *Cmd) Parse(args []string) error {
+// ParseArgs a set of arguments.
+func (c *Cmd) ParseArgs(args ...string) error {
 	c.complete(args)
 	_, err := c.parse(args)
 	return c.handleError(err)

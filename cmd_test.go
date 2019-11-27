@@ -127,7 +127,7 @@ func TestSubCmd(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			root := newTestCmd()
-			err := root.Parse(tt.args)
+			err := root.ParseArgs(tt.args...)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -247,7 +247,7 @@ Flags:
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
 			root := newTestCmd()
-			err := root.Parse(tt.args)
+			err := root.ParseArgs(tt.args...)
 			assert.Error(t, err)
 			assert.Equal(t, tt.want, root.out.String())
 		})
@@ -262,12 +262,12 @@ func TestCmd_valueCheck(t *testing.T) {
 		root.String("foo", "", "", predict.OptValues("foo", "bar"), predict.OptCheck())
 		root.Args("", "", predict.OptValues("one", "two"), predict.OptCheck())
 
-		assert.NoError(t, root.Parse([]string{"cmd", "-foo", "foo"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-foo", "fo"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-foo", "fooo"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "one"}))
-		assert.Error(t, root.Parse([]string{"cmd", "on"}))
-		assert.Error(t, root.Parse([]string{"cmd", "onee"}))
+		assert.NoError(t, root.ParseArgs("cmd", "-foo", "foo"))
+		assert.Error(t, root.ParseArgs("cmd", "-foo", "fo"))
+		assert.Error(t, root.ParseArgs("cmd", "-foo", "fooo"))
+		assert.NoError(t, root.ParseArgs("cmd", "one"))
+		assert.Error(t, root.ParseArgs("cmd", "on"))
+		assert.Error(t, root.ParseArgs("cmd", "onee"))
 	})
 
 	t.Run("check disabled", func(t *testing.T) {
@@ -275,23 +275,23 @@ func TestCmd_valueCheck(t *testing.T) {
 		root.String("foo", "", "", predict.OptValues("foo", "bar"))
 		root.Args("", "", predict.OptValues("one", "two"))
 
-		assert.NoError(t, root.Parse([]string{"cmd", "-foo", "foo"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "-foo", "fo"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "-foo", "fooo"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "one"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "on"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "onee"}))
+		assert.NoError(t, root.ParseArgs("cmd", "-foo", "foo"))
+		assert.NoError(t, root.ParseArgs("cmd", "-foo", "fo"))
+		assert.NoError(t, root.ParseArgs("cmd", "-foo", "fooo"))
+		assert.NoError(t, root.ParseArgs("cmd", "one"))
+		assert.NoError(t, root.ParseArgs("cmd", "on"))
+		assert.NoError(t, root.ParseArgs("cmd", "onee"))
 	})
 
 	t.Run("check files", func(t *testing.T) {
 		root := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
 		root.String("file", "", "", predict.OptPredictor(predict.Files("*.go")), predict.OptCheck())
 
-		assert.NoError(t, root.Parse([]string{"cmd", "-file", "cmd.go"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "-file", "./cmd.go"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "-file", "example/main.go"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-file", "no-such-file.go"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-file", "README.md"}))
+		assert.NoError(t, root.ParseArgs("cmd", "-file", "cmd.go"))
+		assert.NoError(t, root.ParseArgs("cmd", "-file", "./cmd.go"))
+		assert.NoError(t, root.ParseArgs("cmd", "-file", "example/main.go"))
+		assert.Error(t, root.ParseArgs("cmd", "-file", "no-such-file.go"))
+		assert.Error(t, root.ParseArgs("cmd", "-file", "README.md"))
 
 	})
 
@@ -299,10 +299,10 @@ func TestCmd_valueCheck(t *testing.T) {
 		root := New(OptErrorHandling(flag.ContinueOnError), OptOutput(ioutil.Discard))
 		root.String("dir", "", "", predict.OptPredictor(predict.Dirs("*")), predict.OptCheck())
 
-		assert.NoError(t, root.Parse([]string{"cmd", "-dir", "example/"}))
-		assert.NoError(t, root.Parse([]string{"cmd", "-dir", "./example/"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-dir", "no-such-dir/"}))
-		assert.Error(t, root.Parse([]string{"cmd", "-dir", "cmd.go"}))
+		assert.NoError(t, root.ParseArgs("cmd", "-dir", "example/"))
+		assert.NoError(t, root.ParseArgs("cmd", "-dir", "./example/"))
+		assert.Error(t, root.ParseArgs("cmd", "-dir", "no-such-dir/"))
+		assert.Error(t, root.ParseArgs("cmd", "-dir", "cmd.go"))
 	})
 }
 
@@ -325,7 +325,7 @@ func TestCmd_failures(t *testing.T) {
 	t.Run("parse must get at least one argument", func(t *testing.T) {
 		root := New(OptOutput(ioutil.Discard))
 
-		assert.Panics(t, func() { root.Parse(nil) })
+		assert.Panics(t, func() { root.ParseArgs() })
 	})
 
 	t.Run("defining flag after subcommand is not allowed", func(t *testing.T) {
@@ -333,7 +333,7 @@ func TestCmd_failures(t *testing.T) {
 		root.SubCommand("sub", "")
 		root.String("flag", "", "")
 
-		assert.Panics(t, func() { root.Parse([]string{"cmd"}) })
+		assert.Panics(t, func() { root.ParseArgs("cmd") })
 	})
 
 	t.Run("defining args after subcommand is not allowed", func(t *testing.T) {
@@ -384,7 +384,7 @@ func TestCmd_failures(t *testing.T) {
 		sub2 := root.SubCommand("sub2", "")
 		sub2.Args("", "")
 
-		assert.NotPanics(t, func() { root.Parse([]string{"cmd", "sub1"}) })
+		assert.NotPanics(t, func() { root.ParseArgs("cmd", "sub1") })
 	})
 
 	t.Run("calling positional more than once is not allowed", func(t *testing.T) {
