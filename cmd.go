@@ -45,6 +45,7 @@ import (
 	"strings"
 
 	"github.com/posener/complete/v2"
+	"github.com/posener/complete/v2/compflag"
 	"github.com/posener/complete/v2/predict"
 	"github.com/posener/formatter"
 )
@@ -58,7 +59,7 @@ type Cmd struct {
 type SubCmd struct {
 	config
 	// flagsSet holds the flags of the command.
-	flagSet *flag.FlagSet
+	*compflag.FlagSet
 	// sub holds the sub commands of the command.
 	sub map[string]*SubCmd
 	// args are the positional arguments. If nil the command does not accept positional arguments.
@@ -239,7 +240,7 @@ func (c *SubCmd) SubCommand(name string, synopsis string, options ...option) *Su
 		option.apply(&cfg.subConfig)
 	}
 
-	subCmd := newSubCmd(cfg, c.flagSet)
+	subCmd := newSubCmd(cfg, c.FlagSet)
 	subCmd.args = c.args
 
 	c.sub[name] = subCmd
@@ -271,7 +272,11 @@ func (c *SubCmd) Args(usage, details string, options ...predict.Option) *[]strin
 // The value argument can optionally implement `github.com/posener/complete.Predictor` interface.
 // Then, command completion for the predictor will apply.
 func (c *SubCmd) ArgsVar(value ArgsValue, usage, details string, options ...predict.Option) {
-	c.checkNewArgs()
+	// If subcommands were set, positional arguments can't be set anymore.
+	if len(c.sub) > 0 {
+		panic("positional args must be defined before defining sub commands")
+	}
+
 	if c.args != nil {
 		panic("Args() or ArgsVar() called more than once.")
 	}
@@ -291,6 +296,8 @@ func (c *SubCmd) parse(args []string) ([]string, error) {
 	if len(args) < 1 {
 		panic("must be at least the command in arguments")
 	}
+
+	c.checkFlagsTree(make(map[string]bool))
 
 	// First argument is the command name.
 	args = args[1:]
@@ -317,11 +324,11 @@ func (c *SubCmd) parse(args []string) ([]string, error) {
 	}
 
 	// Check for command flags, and update the remaining arguments.
-	err := c.flagSet.Parse(args)
+	err := c.FlagSet.Parse(args)
 	if err != nil {
 		return nil, fmt.Errorf("%s: bad flags: %w", c.name, err)
 	}
-	args = c.flagSet.Args()
+	args = c.FlagSet.Args()
 
 	// Collect positional arguments if required.
 	args, err = c.setArgs(args)
@@ -397,7 +404,7 @@ func (c *SubCmd) Usage() {
 	} else {
 		if c.hasFlags() {
 			fmt.Fprintf(w, "Flags:\n\n")
-			c.flagSet.PrintDefaults()
+			c.FlagSet.PrintDefaults()
 			fmt.Fprintf(w, "\n")
 		}
 
@@ -421,8 +428,28 @@ func (c *SubCmd) subNames() []string {
 
 func (c *SubCmd) hasFlags() bool {
 	hasFlags := false
-	c.flagSet.VisitAll(func(*flag.Flag) { hasFlags = true })
+	c.VisitAll(func(*flag.Flag) { hasFlags = true })
 	return hasFlags
+}
+
+// checkFlagsTree checks that each sub command contains at least all its parent's flags. This is
+// needed because the flag parsing is done only in leaf sub commands. If the user have defined the
+// flag commands before creating any sub command, the checked condition will hold.
+//
+// This function panics when invalid state has been found.
+func (c *SubCmd) checkFlagsTree(parent map[string]bool) {
+	current := make(map[string]bool)
+	c.FlagSet.VisitAll(func(f *flag.Flag) {
+		current[f.Name] = true
+	})
+	for p := range parent {
+		if !current[p] {
+			panic(fmt.Sprintf("flag %s was defined after sub commands %s", p, c.name))
+		}
+	}
+	for _, subcmd := range c.sub {
+		subcmd.checkFlagsTree(current)
+	}
 }
 
 // complete performs bash completion when required.
@@ -436,13 +463,13 @@ func newCmd(cfg config) *Cmd {
 	return c
 }
 
-func newSubCmd(cfg config, parentFs *flag.FlagSet) *SubCmd {
+func newSubCmd(cfg config, parentFs *compflag.FlagSet) *SubCmd {
 	cmd := &SubCmd{
 		config:  cfg,
-		flagSet: copyFlagSet(cfg, parentFs),
+		FlagSet: copyFlagSet(cfg, parentFs),
 		sub:     make(map[string]*SubCmd),
 	}
-	cmd.flagSet.Usage = cmd.Usage
+	cmd.FlagSet.Usage = cmd.Usage
 	return cmd
 }
 
@@ -450,21 +477,13 @@ func detailsWriter(w io.Writer) io.Writer {
 	return &formatter.Formatter{Writer: w, Width: 80, Indent: []byte("  ")}
 }
 
-func copyMap(m map[string]string) map[string]string {
-	cp := make(map[string]string, len(m))
-	for k, v := range m {
-		cp[k] = v
-	}
-	return cp
-}
-
-func copyFlagSet(cfg config, f *flag.FlagSet) *flag.FlagSet {
+func copyFlagSet(cfg config, f *compflag.FlagSet) *compflag.FlagSet {
 	cp := flag.NewFlagSet(cfg.name, flag.ContinueOnError)
 	cp.SetOutput(cfg.output)
 	if f != nil {
 		f.VisitAll(func(fl *flag.Flag) { cp.Var(fl.Value, fl.Name, fl.Usage) })
 	}
-	return cp
+	return (*compflag.FlagSet)(cp)
 }
 
 func completionUsage(name string) string {

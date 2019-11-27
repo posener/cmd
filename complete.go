@@ -25,14 +25,14 @@ func (c *completer) FlagList() []string {
 		return nil
 	}
 	var flags []string
-	c.flagSet.VisitAll(func(f *flag.Flag) {
+	c.FlagSet.VisitAll(func(f *flag.Flag) {
 		flags = append(flags, f.Name)
 	})
 	return flags
 }
 
 func (c *completer) FlagGet(flag string) complete.Predictor {
-	f := c.flagSet.Lookup(flag)
+	f := c.FlagSet.Lookup(flag)
 	if f == nil {
 		return nil
 	}

@@ -332,8 +332,9 @@ func TestCmd_failures(t *testing.T) {
 	t.Run("defining flag after subcommand is not allowed", func(t *testing.T) {
 		root := New(OptOutput(ioutil.Discard))
 		root.SubCommand("sub", "")
+		root.String("flag", "", "")
 
-		assert.Panics(t, func() { root.String("flag", "", "") })
+		assert.Panics(t, func() { root.Parse([]string{"cmd"}) })
 	})
 
 	t.Run("defining args after subcommand is not allowed", func(t *testing.T) {

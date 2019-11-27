@@ -7,10 +7,8 @@ github.com/hashicorp/go-multierror v1.0.0/go.mod h1:dHtQlpGsu+cZNNAkkCN/P3hoUDHh
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
-github.com/posener/complete/v2 v2.0.1-alpha.10 h1:bDaS71xaEpq3TVEdMNH9HiXUkFV5U0JnL0zuE4ix9BE=
-github.com/posener/complete/v2 v2.0.1-alpha.10/go.mod h1://JlL91cS2JV7rOl6LVHrRqBXoBUecJu3ILQPgbJiMQ=
-github.com/posener/complete/v2 v2.0.1-alpha.11 h1:8fzZNVW6u0PzAhM9a2BRExgE459K0yB6WZIA6mg0rLw=
-github.com/posener/complete/v2 v2.0.1-alpha.11/go.mod h1://JlL91cS2JV7rOl6LVHrRqBXoBUecJu3ILQPgbJiMQ=
+github.com/posener/complete/v2 v2.0.1-alpha.12 h1:0wvkuDfHb5vSZlNBYgpEH4XQHpF46MjLPHav8XC77Nc=
+github.com/posener/complete/v2 v2.0.1-alpha.12/go.mod h1://JlL91cS2JV7rOl6LVHrRqBXoBUecJu3ILQPgbJiMQ=
 github.com/posener/formatter v1.0.0 h1:TwXJq26f9ERTjCpZj8xEWj77WPWfX/nBgGx52Ap/gYM=
 github.com/posener/formatter v1.0.0/go.mod h1:xrC89js6vw5dde/9yUKKU9MY5ivn980yX4VG7gYQTvU=
 github.com/posener/script v1.0.4 h1:nSuXW5ZdmFnQIueLB2s0qvs4oNsUloM1Zydzh75v42w=
