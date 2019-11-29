@@ -9,8 +9,7 @@ import (
 type completer SubCmd
 
 func (c *completer) SubCmdList() []string {
-	cmd := (*SubCmd)(c)
-	return cmd.subNames()
+	return (*SubCmd)(c).subNames()
 }
 
 func (c *completer) SubCmdGet(name string) complete.Completer {
