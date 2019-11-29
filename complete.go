@@ -46,8 +46,8 @@ func (c *completer) ArgsGet() complete.Predictor {
 	if c.args.predict.Predictor != nil {
 		return c.args.predict
 	}
-	if comp, ok := c.args.value.(complete.Predictor); ok {
-		return comp
+	if p, ok := c.args.value.(complete.Predictor); ok {
+		return p
 	}
 	return nil
 }
