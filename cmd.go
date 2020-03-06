@@ -219,6 +219,7 @@ func (c *Cmd) handleError(err error) error {
 	}
 	switch c.errorHandling {
 	case flag.ExitOnError:
+		fmt.Fprintf(os.Stderr, err.Error()+"\n")
 		os.Exit(2)
 	case flag.PanicOnError:
 		panic(err)
