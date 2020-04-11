@@ -10,6 +10,7 @@ import (
 // An example that shows how to use advanced configuration of flags and positional arguments using
 // the predict package.
 func Example_values() {
+	// Should be defined in global `var`.
 	var (
 		root = cmd.New()
 		// Define a flag with valid values 'foo' and 'bar', and enforce the values by `OptCheck()`.

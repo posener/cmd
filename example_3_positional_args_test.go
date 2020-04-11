@@ -9,6 +9,7 @@ import (
 // In the cmd package, positional arguments should be explicitly defined. They are defined using the
 // `Args` or `ArgsVar` methods.
 func Example_args() {
+	// Should be defined in global `var`.
 	var (
 		root = cmd.New()
 		// Positional arguments should be defined as any other flag.
