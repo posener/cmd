@@ -108,6 +108,7 @@ import (
 )
 
 func main() {
+	// Should be defined in global `var`.
 	var (
 		root = cmd.New()
 		// Define a flag with valid values 'foo' and 'bar', and enforce the values by `OptCheck()`.
@@ -154,6 +155,7 @@ import (
 )
 
 func main() {
+	// Should be defined in global `var`.
 	var (
 		root = cmd.New()
 		// Positional arguments should be defined as any other flag.
