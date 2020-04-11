@@ -1,9 +1,7 @@
 # cmd
 
-[![Build Status](https://travis-ci.org/posener/cmd.svg?branch=master)](https://travis-ci.org/posener/cmd)
 [![codecov](https://codecov.io/gh/posener/cmd/branch/master/graph/badge.svg)](https://codecov.io/gh/posener/cmd)
-[![GoDoc](https://godoc.org/github.com/posener/cmd?status.svg)](http://godoc.org/github.com/posener/cmd)
-[![goreadme](https://goreadme.herokuapp.com/badge/posener/cmd.svg)](https://goreadme.herokuapp.com)
+[![GoDoc](https://img.shields.io/badge/pkg.go.dev-doc-blue)](http://pkg.go.dev/github.com/posener/cmd)
 
 Package cmd is a minimalistic library that enables easy sub commands with the standard `flag` library.
 
@@ -22,7 +20,7 @@ Features:
 
 - [x] Automatic usage text.
 
-#### Usage
+## Usage
 
 Define a root command object using the `New` function.
 This object exposes the standard library's `flag.FlagSet` API, which enables adding flags in the
@@ -32,7 +30,7 @@ This objects also exposing the same API, enabling definition of flags and nested
 The root object then have to be called with the `Parse` method, similarly to
 the `flag.Parse` call.
 
-#### Principles
+## Principles
 
 * Minimalistic and `flag`-like.
 
@@ -50,7 +48,7 @@ arguments and thus can't define their own positional arguments.
 
 * When flag configuration is wrong, the program will panic.
 
-#### Examples
+## Examples
 
 Definition and usage of sub commands and sub commands flags.
 
@@ -95,7 +93,7 @@ func main() {
 
 ```
 
-##### Values
+### Values
 
 An example that shows how to use advanced configuration of flags and positional arguments using
 the predict package.
@@ -140,10 +138,9 @@ func main() {
 
 ```
 foo cmd.go [buz bazz]
-
 ```
 
-##### Args
+### Args
 
 In the cmd package, positional arguments should be explicitly defined. They are defined using the
 `Args` or `ArgsVar` methods.
@@ -177,10 +174,9 @@ func main() {
 
 ```
 [v1 v2 v3]
-
 ```
 
-##### ArgsFn
+### ArgsFn
 
 An example of how to parse positional arguments using a custom function. It enables the advantage
 of using named variables such as `src` and `dst` as opposed to args[0] and args[1].
@@ -229,10 +225,9 @@ func main() {
 
 ```
 from.txt to.txt
-
 ```
 
-##### ArgsInt
+### ArgsInt
 
 An example of defining int positional arguments.
 
@@ -276,10 +271,9 @@ func main() {
 
 ```
 60
-
 ```
 
-##### ArgsN
+### ArgsN
 
 An example of defining an exact number of positional arguments.
 
@@ -320,10 +314,7 @@ func main() {
 
 ```
 [from.txt to.txt]
-
 ```
 
-
 ---
-
-Created by [goreadme](https://github.com/apps/goreadme)
+Readme created from Go doc with [goreadme](https://github.com/posener/goreadme)
