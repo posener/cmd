@@ -310,9 +310,10 @@ func (c *SubCmd) parse(args []string) ([]string, error) {
 	// First argument is the command name.
 	args = args[1:]
 
-	/// If command has sub commands, find it and parse the sub command.
+	// If command has sub commands, find it and parse the sub command.
 	if len(c.sub) > 0 {
 		if len(args) == 0 {
+			c.Usage()
 			return nil, fmt.Errorf("must provide sub command")
 		}
 		name := args[0]
