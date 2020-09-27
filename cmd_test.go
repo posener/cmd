@@ -4,12 +4,14 @@ import (
 	"bytes"
 	"flag"
 	"io/ioutil"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/posener/complete/v2/predict"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 type testCmd struct {
@@ -145,13 +147,13 @@ func TestSubCmd(t *testing.T) {
 }
 
 func TestHelp(t *testing.T) {
-	t.Parallel()
-
 	tests := []struct {
+		shell string
 		args []string
 		want string
 	}{
 		{
+			shell: "/bin/bash",
 			args: []string{"cmd", "-h"},
 			want: `Usage: cmd [sub1|sub2]
 
@@ -173,6 +175,67 @@ Skip installation prompt with environment variable: 'COMP_YES=1'.
 `,
 		},
 		{
+			shell: "/bin/fish",
+			args: []string{"cmd", "-h"},
+			want: `Usage: cmd [sub1|sub2]
+
+cmd synopsis
+
+  testing command line example
+
+Subcommands:
+
+  sub1	a sub command with flags and sub commands
+  sub2	a sub command without flags and sub commands
+
+Bash Completion:
+
+Install bash completion by running: 'COMP_INSTALL=1 cmd'.
+Uninstall by running: 'COMP_UNINSTALL=1 cmd'.
+Skip installation prompt with environment variable: 'COMP_YES=1'.
+
+`,
+		},
+		{
+			shell: "/bin/zsh",
+			args: []string{"cmd", "-h"},
+			want: `Usage: cmd [sub1|sub2]
+
+cmd synopsis
+
+  testing command line example
+
+Subcommands:
+
+  sub1	a sub command with flags and sub commands
+  sub2	a sub command without flags and sub commands
+
+Bash Completion:
+
+Install bash completion by running: 'COMP_INSTALL=1 cmd'.
+Uninstall by running: 'COMP_UNINSTALL=1 cmd'.
+Skip installation prompt with environment variable: 'COMP_YES=1'.
+
+`,
+		},
+		{
+			shell: "",
+			args: []string{"cmd", "-h"},
+			want: `Usage: cmd [sub1|sub2]
+
+cmd synopsis
+
+  testing command line example
+
+Subcommands:
+
+  sub1	a sub command with flags and sub commands
+  sub2	a sub command without flags and sub commands
+
+`,
+		},
+		{
+			shell: "/bin/bash",
 			args: []string{"cmd", "sub1", "-h"},
 			want: `Usage: cmd sub1 [sub1|sub2]
 
@@ -193,6 +256,7 @@ Subcommands:
 `,
 		},
 		{
+			shell: "/bin/bash",
 			args: []string{"cmd", "sub2", "-h"},
 			want: `Usage: cmd sub2 [flags] [arg]
 
@@ -210,6 +274,7 @@ Positional arguments:
 `,
 		},
 		{
+			shell: "/bin/bash",
 			args: []string{"cmd", "sub1", "sub1", "-h"},
 			want: `Usage: cmd sub1 sub1 [flags] [args...]
 
@@ -227,6 +292,7 @@ Flags:
 `,
 		},
 		{
+			shell: "/bin/bash",
 			args: []string{"cmd", "sub1", "sub2", "-h"},
 			want: `Usage: cmd sub1 sub2 [flags]
 
@@ -247,6 +313,10 @@ Flags:
 
 	for _, tt := range tests {
 		t.Run(strings.Join(tt.args, " "), func(t *testing.T) {
+			previousShell := os.Getenv("SHELL")
+			defer os.Setenv("SHELL", previousShell)
+			require.NoError(t, os.Setenv("SHELL", tt.shell))
+
 			root := newTestCmd()
 			err := root.ParseArgs(tt.args...)
 			assert.Error(t, err)

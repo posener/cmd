@@ -47,6 +47,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"sort"
 	"strings"
 
@@ -418,7 +419,7 @@ func (c *SubCmd) Usage() {
 		}
 		fmt.Fprintf(w, "\n")
 		// Print completion options only to the root command.
-		if c.isRoot {
+		if c.isRoot && detectCompletionSupport() {
 			fmt.Fprintln(w, completionUsage(c.name))
 		}
 	} else {
@@ -504,6 +505,11 @@ func copyFlagSet(cfg config, f *compflag.FlagSet) *compflag.FlagSet {
 		f.VisitAll(func(fl *flag.Flag) { cp.Var(fl.Value, fl.Name, fl.Usage) })
 	}
 	return (*compflag.FlagSet)(cp)
+}
+
+func detectCompletionSupport() bool {
+	shellName := strings.ToLower(filepath.Base(os.Getenv("SHELL")))
+	return shellName == "bash" || shellName == "fish" || shellName == "zsh"
 }
 
 func completionUsage(name string) string {
